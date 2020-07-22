@@ -1,4 +1,4 @@
-package controllers;
+package main.controllers;
 
 public class ApiAuthController {
 }
