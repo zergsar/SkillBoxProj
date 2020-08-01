@@ -3,6 +3,7 @@ package main.model;
 
 import javax.persistence.*;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 @Entity
 @Table(name = "captcha_codes")
@@ -17,10 +18,24 @@ public class CaptchaCodes {
     private Calendar time;
 
     @Column(name = "code", nullable = false)
-    private byte code;
+    private String code;
 
     @Column(name = "secret_code", nullable = false)
-    private byte secretCode;
+    private String secretCode;
+
+
+    public CaptchaCodes()
+    {
+
+    }
+
+    public CaptchaCodes(String code, String secretCode)
+    {
+        this.code = code;
+        this.secretCode = secretCode;
+        this.time = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
+    }
 
 
     public int getId() {
@@ -35,19 +50,19 @@ public class CaptchaCodes {
         this.time = time;
     }
 
-    public byte getCode() {
+    public String getCode() {
         return code;
     }
 
-    public void setCode(byte code) {
+    public void setCode(String code) {
         this.code = code;
     }
 
-    public byte getSecretCode() {
+    public String getSecretCode() {
         return secretCode;
     }
 
-    public void setSecretCode(byte secretCode) {
+    public void setSecretCode(String secretCode) {
         this.secretCode = secretCode;
     }
 }

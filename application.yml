@@ -1,7 +1,25 @@
-spring.jpa.hibernate.ddl-auto: create
+#Init information
+title: DevPub
+subtitle: Рассказы разработчиков
+phone: +7 903 666-44-55
+email: mail@mail.ru
+copyright: Тимиров Сергей
+copyrightFrom: 2020
+
+#Redis configuration
+redis.host: 127.0.0.1
+redis.port: 6379
+
+#MySQL configuration
 spring.datasource.url: jdbc:mysql://localhost:3306/blogdb?serverTimezone=UTC
 spring.datasource.username: root
 spring.datasource.password: test
-spring.jpa.generate-ddl: true
+
+#JPA configuration
+spring.jpa.hibernate.ddl-auto: validate
+spring.jpa.generate-ddl: false
 spring.data.jpa.repositories.enabled: true
 spring.jpa.show-sql: true
+
+#Timeout deleting captcha in minutes
+captcha.timeout: 1

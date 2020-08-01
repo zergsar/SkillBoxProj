@@ -3,6 +3,7 @@ package main.model;
 import javax.persistence.*;
 import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 @Entity
 @Table(name = "users")
@@ -26,15 +27,28 @@ public class User {
     @Column(name = "password", nullable = false)
     private String password;
 
+    @OneToMany(mappedBy = "userId", fetch=FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Post> posts;
+
     private String code;
     private String photo;
 
     public User()
     {
-//        this.isModerator = 1;
-//        this.regTime = Calendar.getInstance();
+        this.isModerator = 0;
+        this.regTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    }
+
+    public User(byte isModerator, Calendar regTime, String name, String email, String password)
+    {
+        this.isModerator = isModerator;
+        this.regTime = regTime;
+        this.name = name;
+        this.email = email;
+        this.password = password;
 
     }
+
 
     public int getId() {
         return id;
