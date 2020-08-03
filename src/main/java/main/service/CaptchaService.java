@@ -1,97 +1,62 @@
 package main.service;
 
-import main.controllers.responsetemplate.CaptchaInfoResponse;
+import java.util.Optional;
+import main.controllers.response.CaptchaInfoResponse;
 import main.model.CaptchaCodes;
 import main.model.CaptchaCodesRepository;
 import main.utils.Generator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.util.Calendar;
 
 @Service
 public class CaptchaService {
 
-    @Autowired
-    CaptchaCodesRepository captchaCodesRepository;
+  private final CaptchaCodesRepository captchaCodesRepository;
 
-    @Value("${captcha.timeout}")
-    private int deleteCaptchaTimeout;
+  @Value("${captcha.timeout}")
+  private int deleteCaptchaTimeout;
+  @Value("${captcha.visible.length}")
+  private int visibleLength;
+  @Value("${captcha.secret.length}")
+  private int secretLength;
+
+  public CaptchaService(CaptchaCodesRepository captchaCodesRepository) {
+    this.captchaCodesRepository = captchaCodesRepository;
+  }
+
+  public CaptchaInfoResponse generateCaptcha() {
+    CaptchaInfoResponse captchaInfoResponse = new CaptchaInfoResponse();
+
+    String secretCode = Generator.generateRandomString(secretLength);
+    String visibleCode = Generator.generateRandomString(visibleLength);
+    String imageString64 = Generator.generateCaptchaImageString(visibleCode);
+
+    captchaInfoResponse.setSecret(secretCode);
+    captchaInfoResponse.setImage("data:image/png;base64, " + imageString64);
+
+    saveCaptchaToBase(visibleCode, secretCode);
+
+    return captchaInfoResponse;
+
+  }
+
+  private void saveCaptchaToBase(String visibleCode, String secretCode) {
+    CaptchaCodes captchaCodes = new CaptchaCodes(visibleCode, secretCode);
+    captchaCodesRepository.save(captchaCodes);
+  }
 
 
-    public void runCaptchaDeletingThread()
-    {
-        new Thread(this::deleteOldCaptcha).start();
+  public boolean validateCaptcha(String code, String secretCode) {
+    Optional<CaptchaCodes> captchaCode = captchaCodesRepository.findByCode(code);
+
+    if (!captchaCode.isPresent()) {
+      return false;
     }
 
-    public CaptchaInfoResponse generateCaptcha()
-    {
-        CaptchaInfoResponse captchaInfoResponse = new CaptchaInfoResponse();
-        int visibleLength = 7;
-        int secretLength = 17;
+    return captchaCode.get().getSecretCode().equals(secretCode);
+  }
 
-        String secretCode = Generator.generateRandomString(secretLength);
-        String visibleCode = Generator.generateRandomString(visibleLength);
-        String imageString64 = Generator.generateCaptchaImageString(visibleCode);
-
-        captchaInfoResponse.setSecret(secretCode);
-        captchaInfoResponse.setImage("data:image/png;base64, " + imageString64);
-
-        saveCaptchaToBase(visibleCode, secretCode);
-
-        return captchaInfoResponse;
-
-    }
-
-    private void saveCaptchaToBase(String visibleCode, String secretCode)
-    {
-        CaptchaCodes captchaCodes = new CaptchaCodes(visibleCode, secretCode);
-        captchaCodesRepository.save(captchaCodes);
-    }
-
-
-    public boolean validateCaptcha(String code, String secretCode)
-    {
-        boolean isRight = false;
-
-        if(captchaCodesRepository.findByCode(code).isPresent())
-        {
-            CaptchaCodes captchaCodes = captchaCodesRepository.findByCode(code).get();
-
-            if(captchaCodes.getSecretCode().equals(secretCode))
-            {
-                isRight = true;
-            }
-        }
-
-        return isRight;
-    }
-
-    private void deleteOldCaptcha()
-    {
-        int threadSleepTimeInSec = 30;
-
-        while(true)
-        {
-            captchaCodesRepository.findAll().forEach(code -> {
-
-                Calendar currentTime = Calendar.getInstance();
-                Calendar captchaGenerationTime = code.getTime();
-
-                captchaGenerationTime.add(Calendar.MINUTE, deleteCaptchaTimeout);
-
-                if (currentTime.after(captchaGenerationTime)) {
-                    captchaCodesRepository.deleteById(code.getId());
-                }
-            });
-
-            try {
-                Thread.sleep(threadSleepTimeInSec * 1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
+  public void deleteOldCaptcha() {
+    captchaCodesRepository.deleteAllOldCaptcha(deleteCaptchaTimeout);
+  }
 }

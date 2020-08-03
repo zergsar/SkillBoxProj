@@ -5,7 +5,6 @@ import main.model.TagRepository;
 import main.service.AuthService;
 import main.service.GeneralService;
 import net.minidev.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -16,62 +15,59 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-public class ApiGeneralController {
+public class GeneralController {
 
-    @Value("${title}")
-    private String title;
-    @Value("${subtitle}")
-    private String subtitle;
-    @Value("${phone}")
-    private String phone;
-    @Value("${email}")
-    private String email;
-    @Value("${copyright}")
-    private String copyright;
-    @Value("${copyrightFrom}")
-    private String copyrightFrom;
+  @Value("${title}")
+  private String title;
+  @Value("${subtitle}")
+  private String subtitle;
+  @Value("${phone}")
+  private String phone;
+  @Value("${email}")
+  private String email;
+  @Value("${copyright}")
+  private String copyright;
+  @Value("${copyrightFrom}")
+  private String copyrightFrom;
 
-    private JSONObject response;
+  private JSONObject response;
 
-    @Autowired
-    private AuthService authService;
+  private final AuthService authService;
+  private final TagRepository tagRepository;
+  private final GeneralService generalService;
 
-    @Autowired
-    private TagRepository tagRepository;
-
-    @Autowired
-    private GeneralService generalService;
-
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
-
-   @GetMapping("/api/init")
-    public JSONObject init()
-    {
-        response = new JSONObject();
-        response.put("title", title);
-        response.put("subtitle", subtitle);
-        response.put("phone", phone);
-        response.put("email", email);
-        response.put("copyright", copyright);
-        response.put("copyrightFrom", copyrightFrom);
-
-        return response;
-    }
-
-    @GetMapping("/api/settings")
-    public JSONObject getSettings()
-    {
-        return generalService.getSettingsFromBase();
-    }
+  public GeneralController(AuthService authService, TagRepository tagRepository,
+      GeneralService generalService) {
+    this.authService = authService;
+    this.tagRepository = tagRepository;
+    this.generalService = generalService;
+  }
 
 
-    @PostMapping(value = "/api/profile/my")
-    public ResponseEntity getTypeContent(@RequestHeader("Content-Type") String contType)
-    {
+  @GetMapping("/api/init")
+  public JSONObject init() {
+    response = new JSONObject();
+    response.put("title", title);
+    response.put("subtitle", subtitle);
+    response.put("phone", phone);
+    response.put("email", email);
+    response.put("copyright", copyright);
+    response.put("copyrightFrom", copyrightFrom);
 
-        return null;
-    }
+    return response;
+  }
 
+  @GetMapping("/api/settings")
+  public JSONObject getSettings() {
+    return generalService.getSettingsFromBase();
+  }
+
+
+  @PostMapping(value = "/api/profile/my")
+  public ResponseEntity getTypeContent(@RequestHeader("Content-Type") String contType) {
+
+    return null;
+  }
 
 //    public ResponseEntity profileMulti(HttpSession httpSession,
 //                                    @RequestHeader("Content-Type") String contType,
@@ -89,7 +85,6 @@ public class ApiGeneralController {
 //        jsonObject.put("email", email.isEmpty() ? "" : email);
 //        jsonObject.put("password", password.isEmpty() ? "" : password);
 //        jsonObject.put("removePhoto", removePhoto.toString().isEmpty() ? "" : removePhoto);
-
 
 //        if(contType.contains("multipart/form-data")) {
 //            System.out.println(user.getName() + " " + user.getEmail() + " " + contType);
@@ -112,11 +107,10 @@ public class ApiGeneralController {
 //    }
 
 
-    @GetMapping("/api/tag")
-    public Iterable<Tag> getTag()
-    {
-        return tagRepository.findAll();
+  @GetMapping("/api/tag")
+  public Iterable<Tag> getTag() {
+    return tagRepository.findAll();
 
-    }
+  }
 
 }

@@ -1,249 +1,223 @@
 package main.service;
 
-import main.controllers.requesttemplate.RequestInfo;
-import main.controllers.responsetemplate.ErrorsInfoResponse;
-import main.controllers.responsetemplate.Response;
-import main.controllers.responsetemplate.UserInfoResponse;
+import java.util.Calendar;
+import java.util.HashMap;
+import javax.servlet.http.HttpSession;
+import main.controllers.request.EditProfileRequest;
+import main.controllers.request.LoginRequest;
+import main.controllers.request.RegistrationRequest;
+import main.controllers.response.ErrorsInfoResponse;
+import main.controllers.response.Response;
+import main.controllers.response.UserInfoResponse;
 import main.model.User;
 import main.model.UserRepository;
 import main.model.cache.RedisCache;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import javax.servlet.http.HttpSession;
-import java.util.Calendar;
-import java.util.HashMap;
 
 @Service
 public class AuthService {
 
-    @Autowired
-    private  UserRepository userRepository;
+  private final UserRepository userRepository;
+  private final CaptchaService captchaService;
+  private final RedisCache redisCache;
 
-    @Autowired
-    private CaptchaService captchaService;
+  public AuthService(UserRepository userRepository, CaptchaService captchaService,
+      RedisCache redisCache) {
+    this.userRepository = userRepository;
+    this.captchaService = captchaService;
+    this.redisCache = redisCache;
+  }
 
-    @Autowired
-    private RedisCache redisCache;
+  private Response verifyInfoNewUser(RegistrationRequest user) {
+    Response response = new Response();
+    ErrorsInfoResponse errorsInfoResponse = new ErrorsInfoResponse();
 
-    private Response response;
-    private ErrorsInfoResponse errorsInfoResponse;
+    boolean isInputInfoRight = true;
 
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
-
-    private Response verifyInfoNewUser(RequestInfo user)
-    {
-        response = new Response();
-        errorsInfoResponse = new ErrorsInfoResponse();
-
-        boolean isInputInfoRight = true;
-
-        if(isExistEmail(user.getEmail()))
-        {
-            errorsInfoResponse.setEmail("Этот e-mail уже зарегистрирован");
-            isInputInfoRight = false;
-        }
-        if(!isNameNotNull(user.getName()))
-        {
-            errorsInfoResponse.setName("Имя указано неверно");
-            isInputInfoRight = false;
-        }
-        if(!isLenCondPass(user.getPassword()))
-        {
-            errorsInfoResponse.setPassword("Пароль короче 6-ти символов");
-            isInputInfoRight = false;
-        }
-        if(!isRightCaptcha(user.getCaptcha(), user.getSecretCode()))
-        {
-            errorsInfoResponse.setCaptcha("Код с картинки введён неверно");
-            isInputInfoRight = false;
-        }
-
-        response.setResult(isInputInfoRight);
-
-        if(!isInputInfoRight) {
-            response.setErrors(errorsInfoResponse);
-        }
-
-        return response;
-
+    if (isExistEmail(user.getEmail())) {
+      errorsInfoResponse.setEmail("Этот e-mail уже зарегистрирован");
+      isInputInfoRight = false;
+    }
+    if (!isNameNotNull(user.getName())) {
+      errorsInfoResponse.setName("Имя указано неверно");
+      isInputInfoRight = false;
+    }
+    if (!isLenCondPass(user.getPassword())) {
+      errorsInfoResponse.setPassword("Пароль короче 6-ти символов");
+      isInputInfoRight = false;
+    }
+    if (!isRightCaptcha(user.getCaptcha(), user.getSecretCode())) {
+      errorsInfoResponse.setCaptcha("Код с картинки введён неверно");
+      isInputInfoRight = false;
     }
 
-    public Response saveNewUserToBase(RequestInfo user)
-    {
-        bCryptPasswordEncoder = new BCryptPasswordEncoder();
-        String email = user.getEmail();
-        String name = user.getName();
-        String password = user.getPassword();
+    response.setResult(isInputInfoRight);
 
-        response = verifyInfoNewUser(user);
-
-        if(response.getResult())
-        {
-            User newUser = new User((byte) 0, Calendar.getInstance(), name, email,
-                    bCryptPasswordEncoder.encode(password));
-            userRepository.save(newUser);
-        }
-
-        return response;
-
+    if (!isInputInfoRight) {
+      response.setErrors(errorsInfoResponse);
     }
 
-    private boolean isExistEmail(String email)
-    {
-        boolean isExist = false;
+    return response;
 
-        if(userRepository.findByEmail(email).isPresent())
-        {
-            isExist = true ;
-        }
+  }
 
-        return isExist;
+  public Response saveNewUserToBase(RegistrationRequest user) {
+    BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+    String email = user.getEmail();
+    String name = user.getName();
+    String password = user.getPassword();
+
+    Response response = verifyInfoNewUser(user);
+
+    if (response.getResult()) {
+      User newUser = new User((byte) 0, Calendar.getInstance(), name, email,
+          bCryptPasswordEncoder.encode(password));
+      userRepository.save(newUser);
     }
 
-    private boolean isNameNotNull(String name)
-    {
-        boolean isNotNull = false;
+    return response;
 
-        if(name.length() > 0)
-        {
-            isNotNull = true;
-        }
+  }
 
-        return isNotNull;
+  private boolean isExistEmail(String email) {
+    boolean isExist = false;
+
+    if (userRepository.findByEmail(email).isPresent()) {
+      isExist = true;
     }
 
-    private boolean isLenCondPass(String password)
-    {
-        boolean isLenCondPass = false;
+    return isExist;
+  }
 
-        if(password.length() >= 6)
-        {
-            isLenCondPass = true;
-        }
+  private boolean isNameNotNull(String name) {
+    boolean isNotNull = false;
 
-        return isLenCondPass;
+    if (name.length() > 0) {
+      isNotNull = true;
     }
 
-    private boolean isRightCaptcha(String captcha, String secretCode)
-    {
-        return captchaService.validateCaptcha(captcha, secretCode);
+    return isNotNull;
+  }
+
+  private boolean isLenCondPass(String password) {
+    boolean isLenCondPass = false;
+
+    if (password.length() >= 6) {
+      isLenCondPass = true;
     }
 
-    public Response authentication(RequestInfo user, String sessionId)
-    {
-        boolean isAllow = false;
-        bCryptPasswordEncoder = new BCryptPasswordEncoder();
+    return isLenCondPass;
+  }
 
-        String email = user.getEmail();
-        String password = user.getPassword();
+  private boolean isRightCaptcha(String captcha, String secretCode) {
+    return captchaService.validateCaptcha(captcha, secretCode);
+  }
 
-        response = new Response();
-        errorsInfoResponse = new ErrorsInfoResponse();
+  public Response authentication(LoginRequest user, String sessionId) {
+    boolean isAllow = false;
+    BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
-        if(isExistEmail(email))
-        {
-            int id = userRepository.findByEmail(email).get().getId();
-            String dbPass = userRepository.findByEmail(email).get().getPassword();
+    String email = user.getEmail();
+    String password = user.getPassword();
 
-            if(bCryptPasswordEncoder.matches(password, dbPass))
-            {
-                response.setUser(getUserInfo(id));
-                isAllow = true;
-                redisCache.saveSessionToCache(sessionId, id);
-            }
-        }
+    Response response = new Response();
+    ErrorsInfoResponse errorsInfoResponse = new ErrorsInfoResponse();
 
-        response.setResult(isAllow);
+    if (isExistEmail(email)) {
+      int id = userRepository.findByEmail(email).get().getId();
+      String dbPass = userRepository.findByEmail(email).get().getPassword();
 
-        return response;
+      if (bCryptPasswordEncoder.matches(password, dbPass)) {
+        response.setUser(getUserInfo(id));
+        isAllow = true;
+        redisCache.saveSessionToCache(sessionId, id);
+      }
     }
 
-    private boolean isModerator(int id)
-    {
-        boolean isModer = false;
-        User user = userRepository.findById(id).get();
-        if(user.getIsModerator() == 1)
-        {
-            isModer = true;
-        }
+    response.setResult(isAllow);
 
-        return isModer;
+    return response;
+  }
+
+  private boolean isModerator(int id) {
+    boolean isModer = false;
+    User user = userRepository.findById(id).get();
+    if (user.getIsModerator() == 1) {
+      isModer = true;
     }
 
-    public Response logout(String sessionId)
-    {
-        response = new Response();
-        redisCache.deleteSessionFromCache(sessionId);
-        response.setResult(true);
-        return response;
+    return isModer;
+  }
+
+  public Response logout(String sessionId) {
+    Response response = new Response();
+    redisCache.deleteSessionFromCache(sessionId);
+    response.setResult(true);
+    return response;
+  }
+
+
+  public Response isActiveSession(String sessionId) {
+    Response response = new Response();
+    boolean isLogin = false;
+
+    if (redisCache.isCacheSession(sessionId)) {
+      int id = redisCache.findUserIdBySessionId(sessionId);
+      response.setUser(getUserInfo(id));
+      isLogin = true;
     }
 
+    response.setResult(isLogin);
 
-    public Response isActiveSession(String sessionId)
-    {
-        response = new Response();
-        boolean isLogin = false;
+    return response;
 
-        if(redisCache.isCacheSession(sessionId))
-        {
-            int id = redisCache.findUserIdBySessionId(sessionId);
-            response.setUser(getUserInfo(id));
-            isLogin = true;
-        }
+  }
 
-        response.setResult(isLogin);
+  private UserInfoResponse getUserInfo(int id) {
+    UserInfoResponse userInfoResponse = new UserInfoResponse();
 
-        return response;
+    String name = userRepository.findById(id).get().getName();
+    String email = userRepository.findById(id).get().getEmail();
+    String photo = userRepository.findById(id).get().getPhoto();
+    int modCount = 0;                                                       //пока нет инфы о кол. постов поэтому 0
 
-    }
+    boolean moderation = isModerator(id);
+    boolean settings = isModerator(
+        id);                                     //непонятно что за настройка
 
-    private UserInfoResponse getUserInfo(int id)
-    {
-        UserInfoResponse userInfoResponse = new UserInfoResponse();
+    userInfoResponse.setId(id);
+    userInfoResponse.setName(name);
+    userInfoResponse.setPhoto(photo);
+    userInfoResponse.setEmail(email);
+    userInfoResponse.setModeration(moderation);
+    userInfoResponse.setModerationCount(modCount);
+    userInfoResponse.setSettings(settings);
 
-        String name = userRepository.findById(id).get().getName();
-        String email = userRepository.findById(id).get().getEmail();
-        String photo = userRepository.findById(id).get().getPhoto();
-        int modCount = 0;                                                       //пока нет инфы о кол. постов поэтому 0
-
-        boolean moderation = isModerator(id);
-        boolean settings = isModerator(id);                                     //непонятно что за настройка
-
-        userInfoResponse.setId(id);
-        userInfoResponse.setName(name);
-        userInfoResponse.setPhoto(photo);
-        userInfoResponse.setEmail(email);
-        userInfoResponse.setModeration(moderation);
-        userInfoResponse.setModerationCount(modCount);
-        userInfoResponse.setSettings(settings);
-
-        return userInfoResponse;
-    }
+    return userInfoResponse;
+  }
 
 
-    public Response profileSetup(HttpSession httpSession, RequestInfo requestInfo) {
-        response = new Response();
-        errorsInfoResponse = new ErrorsInfoResponse();
-        String sessionId = httpSession.getId();
+  public Response profileSetup(HttpSession httpSession, EditProfileRequest editProfileRequest) {
+    Response response = new Response();
+    ErrorsInfoResponse errorsInfoResponse = new ErrorsInfoResponse();
+    String sessionId = httpSession.getId();
 
-        boolean isActive = isActiveSession(sessionId).getResult();
-        boolean isErrors = false;
+    boolean isActive = isActiveSession(sessionId).getResult();
+    boolean isErrors = false;
 
-        if (isActive) {
-            int id = redisCache.findUserIdBySessionId(sessionId);
-            User user = userRepository.findById(id).get();
-            String email = requestInfo.getEmail();
-            String name = requestInfo.getName();
+    if (isActive) {
+      int id = redisCache.findUserIdBySessionId(sessionId);
+      User user = userRepository.findById(id).get();
+      String email = editProfileRequest.getEmail();
+      String name = editProfileRequest.getName();
 
-            HashMap<String, Object> fields = requestInfo.getProfileFieldsMap();
+      HashMap<String, Object> fields = editProfileRequest.getProfileFieldsMap();
 
-            for(String field : fields.keySet())
-            {
-                System.out.println(field + " " + fields.get(field));
+      for (String field : fields.keySet()) {
+        System.out.println(field + " " + fields.get(field));
 
-            }
+      }
 
 //            if(!user.getEmail().equals(email) || isExistEmail(email))
 //            {
@@ -254,8 +228,7 @@ public class AuthService {
 //                user.setName(name);
 //            }
 
-
-//            for(String param : requestInfo.keySet())
+//            for(String param : editProfileRequest.keySet())
 //            {
 //                String value = jsonObject.get(param).toString();
 //
@@ -302,9 +275,9 @@ public class AuthService {
 //        {
 //            response.put("result", "unauthorized");
 //        }
-        }
-        return response;
     }
+    return response;
+  }
 //    }
 
 //    private JSONObject changeUserInformation(User user, String param, String value)

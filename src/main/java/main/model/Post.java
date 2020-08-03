@@ -1,118 +1,126 @@
 package main.model;
 
-import main.model.enums.ModerationStatus;
-
-import javax.persistence.*;
 import java.util.Calendar;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import main.model.enums.ModerationStatus;
 
 @Entity
 @Table(name = "posts")
 public class Post {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", nullable = false)
-    private int id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
+  @Column(name = "id", nullable = false)
+  private int id;
 
-    @Column(name = "is_active", nullable = false)
-    private byte isActive;
+  @Column(name = "is_active", nullable = false)
+  private byte isActive;
 
-    @Column(name = "moderation_status", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private ModerationStatus moderationStatus;
+  @Column(name = "moderation_status", nullable = false)
+  @Enumerated(EnumType.STRING)
+  private ModerationStatus moderationStatus;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "moderator_id")
-    private User moderatorId;
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "moderator_id")
+  private User moderatorId;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User userId;
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User userId;
 
-    @Column(name = "time", nullable = false)
-    private Calendar time;
+  @Column(name = "time", nullable = false)
+  private Calendar time;
 
-    @Column(name = "title", nullable = false)
-    private String title;
+  @Column(name = "title", nullable = false)
+  private String title;
 
-    @Column(name = "text", nullable = false)
-    private String text;
+  @Column(name = "text", nullable = false)
+  private String text;
 
-    @Column(name = "view_count", nullable = false)
-    private int viewCount;
-
-
-    public Post()
-    {
-
-    }
+  @Column(name = "view_count", nullable = false)
+  private int viewCount;
 
 
-    public ModerationStatus getModerationStatus() {
-        return moderationStatus;
-    }
+  public Post() {
 
-    public void setModerationStatus(ModerationStatus moderationStatus) {
-        this.moderationStatus = moderationStatus;
-    }
+  }
 
-    public byte getIsActive() {
-        return isActive;
-    }
 
-    public void setIsActive(byte isActive) {
-        this.isActive = isActive;
-    }
+  public ModerationStatus getModerationStatus() {
+    return moderationStatus;
+  }
 
-    public int getId() {
-        return id;
-    }
+  public void setModerationStatus(ModerationStatus moderationStatus) {
+    this.moderationStatus = moderationStatus;
+  }
 
-    public User getModeratorId() {
-        return moderatorId;
-    }
+  public byte getIsActive() {
+    return isActive;
+  }
 
-    public void setModeratorId(User moderatorId) {
-        this.moderatorId = moderatorId;
-    }
+  public void setIsActive(byte isActive) {
+    this.isActive = isActive;
+  }
 
-    public User getUserId() {
-        return userId;
-    }
+  public int getId() {
+    return id;
+  }
 
-    public void setUserId(User userId) {
-        this.userId = userId;
-    }
+  public User getModeratorId() {
+    return moderatorId;
+  }
 
-    public Calendar getTime() {
-        return time;
-    }
+  public void setModeratorId(User moderatorId) {
+    this.moderatorId = moderatorId;
+  }
 
-    public void setTime(Calendar time) {
-        this.time = time;
-    }
+  public User getUserId() {
+    return userId;
+  }
 
-    public String getTitle() {
-        return title;
-    }
+  public void setUserId(User userId) {
+    this.userId = userId;
+  }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+  public Calendar getTime() {
+    return time;
+  }
 
-    public String getText() {
-        return text;
-    }
+  public void setTime(Calendar time) {
+    this.time = time;
+  }
 
-    public void setText(String text) {
-        this.text = text;
-    }
+  public String getTitle() {
+    return title;
+  }
 
-    public int getViewCount() {
-        return viewCount;
-    }
+  public void setTitle(String title) {
+    this.title = title;
+  }
 
-    public void setViewCount(int viewCount) {
-        this.viewCount = viewCount;
-    }
+  public String getText() {
+    return text;
+  }
+
+  public void setText(String text) {
+    this.text = text;
+  }
+
+  public int getViewCount() {
+    return viewCount;
+  }
+
+  public void setViewCount(int viewCount) {
+    this.viewCount = viewCount;
+  }
 }

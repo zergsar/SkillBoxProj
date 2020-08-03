@@ -21,5 +21,9 @@ spring.jpa.generate-ddl: false
 spring.data.jpa.repositories.enabled: true
 spring.jpa.show-sql: true
 
-#Timeout deleting captcha in minutes
+#Captcha settings
+##Timeout deleting captcha in minutes
 captcha.timeout: 1
+##Length captcha codes
+captcha.visible.length: 7
+captcha.secret.length: 17
