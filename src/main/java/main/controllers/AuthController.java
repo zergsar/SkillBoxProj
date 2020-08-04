@@ -5,7 +5,7 @@ import main.controllers.request.EditProfileRequest;
 import main.controllers.request.LoginRequest;
 import main.controllers.request.RegistrationRequest;
 import main.controllers.response.CaptchaInfoResponse;
-import main.controllers.response.Response;
+import main.controllers.response.ResponseAuth;
 import main.service.AuthService;
 import main.service.CaptchaService;
 import org.springframework.http.HttpStatus;
@@ -29,35 +29,35 @@ public class AuthController {
 
 
   @GetMapping("/api/auth/check")
-  public ResponseEntity<Response> isAuthorization(HttpSession httpSession) {
+  public ResponseEntity<ResponseAuth> isAuthorization(HttpSession httpSession) {
     String sessionId = httpSession.getId();
     return new ResponseEntity<>(authService.isActiveSession(sessionId), HttpStatus.OK);
   }
 
   @GetMapping("/api/auth/logout")
-  public ResponseEntity<Response> logout(HttpSession httpSession) {
+  public ResponseEntity<ResponseAuth> logout(HttpSession httpSession) {
     String sessionId = httpSession.getId();
     return new ResponseEntity<>(authService.logout(sessionId), HttpStatus.OK);
   }
 
   @PostMapping("/api/auth/login")
-  public ResponseEntity<Response> login(@RequestBody LoginRequest user, HttpSession httpSession) {
+  public ResponseEntity<ResponseAuth> login(@RequestBody LoginRequest user, HttpSession httpSession) {
     String sessionId = httpSession.getId();
-    Response response = authService.authentication(user, sessionId);
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    ResponseAuth responseAuth = authService.authentication(user, sessionId);
+    return new ResponseEntity<>(responseAuth, HttpStatus.OK);
   }
 
   @PostMapping("/api/auth/register")
-  public ResponseEntity<Response> newUserReg(@RequestBody RegistrationRequest user) {
-    Response response = authService.saveNewUserToBase(user);
-    return new ResponseEntity<>(response, HttpStatus.OK);
+  public ResponseEntity<ResponseAuth> newUserReg(@RequestBody RegistrationRequest user) {
+    ResponseAuth responseAuth = authService.saveNewUserToBase(user);
+    return new ResponseEntity<>(responseAuth, HttpStatus.OK);
   }
 
   @PostMapping(value = "/api/profile/my", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<Response> editProfile(HttpSession httpSession,
+  public ResponseEntity<ResponseAuth> editProfile(HttpSession httpSession,
       @RequestBody EditProfileRequest editProfileRequest) {
-    Response response = authService.profileSetup(httpSession, editProfileRequest);
-    return new ResponseEntity<>(response, HttpStatus.OK);
+    ResponseAuth responseAuth = authService.profileSetup(httpSession, editProfileRequest);
+    return new ResponseEntity<>(responseAuth, HttpStatus.OK);
   }
 
   @GetMapping("/api/auth/captcha")

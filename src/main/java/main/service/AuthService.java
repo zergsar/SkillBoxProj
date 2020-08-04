@@ -6,9 +6,9 @@ import javax.servlet.http.HttpSession;
 import main.controllers.request.EditProfileRequest;
 import main.controllers.request.LoginRequest;
 import main.controllers.request.RegistrationRequest;
-import main.controllers.response.ErrorsInfoResponse;
-import main.controllers.response.Response;
-import main.controllers.response.UserInfoResponse;
+import main.controllers.response.AuthErrorsInfoResponse;
+import main.controllers.response.ResponseAuth;
+import main.controllers.response.AuthUserInfoResponse;
 import main.model.User;
 import main.model.UserRepository;
 import main.model.cache.RedisCache;
@@ -29,54 +29,54 @@ public class AuthService {
     this.redisCache = redisCache;
   }
 
-  private Response verifyInfoNewUser(RegistrationRequest user) {
-    Response response = new Response();
-    ErrorsInfoResponse errorsInfoResponse = new ErrorsInfoResponse();
+  private ResponseAuth verifyInfoNewUser(RegistrationRequest user) {
+    ResponseAuth responseAuth = new ResponseAuth();
+    AuthErrorsInfoResponse authErrorsInfoResponse = new AuthErrorsInfoResponse();
 
     boolean isInputInfoRight = true;
 
     if (isExistEmail(user.getEmail())) {
-      errorsInfoResponse.setEmail("Этот e-mail уже зарегистрирован");
+      authErrorsInfoResponse.setEmail("Этот e-mail уже зарегистрирован");
       isInputInfoRight = false;
     }
     if (!isNameNotNull(user.getName())) {
-      errorsInfoResponse.setName("Имя указано неверно");
+      authErrorsInfoResponse.setName("Имя указано неверно");
       isInputInfoRight = false;
     }
     if (!isLenCondPass(user.getPassword())) {
-      errorsInfoResponse.setPassword("Пароль короче 6-ти символов");
+      authErrorsInfoResponse.setPassword("Пароль короче 6-ти символов");
       isInputInfoRight = false;
     }
     if (!isRightCaptcha(user.getCaptcha(), user.getSecretCode())) {
-      errorsInfoResponse.setCaptcha("Код с картинки введён неверно");
+      authErrorsInfoResponse.setCaptcha("Код с картинки введён неверно");
       isInputInfoRight = false;
     }
 
-    response.setResult(isInputInfoRight);
+    responseAuth.setResult(isInputInfoRight);
 
     if (!isInputInfoRight) {
-      response.setErrors(errorsInfoResponse);
+      responseAuth.setErrors(authErrorsInfoResponse);
     }
 
-    return response;
+    return responseAuth;
 
   }
 
-  public Response saveNewUserToBase(RegistrationRequest user) {
+  public ResponseAuth saveNewUserToBase(RegistrationRequest user) {
     BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
     String email = user.getEmail();
     String name = user.getName();
     String password = user.getPassword();
 
-    Response response = verifyInfoNewUser(user);
+    ResponseAuth responseAuth = verifyInfoNewUser(user);
 
-    if (response.getResult()) {
+    if (responseAuth.getResult()) {
       User newUser = new User((byte) 0, Calendar.getInstance(), name, email,
           bCryptPasswordEncoder.encode(password));
       userRepository.save(newUser);
     }
 
-    return response;
+    return responseAuth;
 
   }
 
@@ -114,30 +114,30 @@ public class AuthService {
     return captchaService.validateCaptcha(captcha, secretCode);
   }
 
-  public Response authentication(LoginRequest user, String sessionId) {
+  public ResponseAuth authentication(LoginRequest user, String sessionId) {
     boolean isAllow = false;
     BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
     String email = user.getEmail();
     String password = user.getPassword();
 
-    Response response = new Response();
-    ErrorsInfoResponse errorsInfoResponse = new ErrorsInfoResponse();
+    ResponseAuth responseAuth = new ResponseAuth();
+    AuthErrorsInfoResponse authErrorsInfoResponse = new AuthErrorsInfoResponse();
 
     if (isExistEmail(email)) {
       int id = userRepository.findByEmail(email).get().getId();
       String dbPass = userRepository.findByEmail(email).get().getPassword();
 
       if (bCryptPasswordEncoder.matches(password, dbPass)) {
-        response.setUser(getUserInfo(id));
+        responseAuth.setUser(getUserInfo(id));
         isAllow = true;
         redisCache.saveSessionToCache(sessionId, id);
       }
     }
 
-    response.setResult(isAllow);
+    responseAuth.setResult(isAllow);
 
-    return response;
+    return responseAuth;
   }
 
   private boolean isModerator(int id) {
@@ -150,32 +150,32 @@ public class AuthService {
     return isModer;
   }
 
-  public Response logout(String sessionId) {
-    Response response = new Response();
+  public ResponseAuth logout(String sessionId) {
+    ResponseAuth responseAuth = new ResponseAuth();
     redisCache.deleteSessionFromCache(sessionId);
-    response.setResult(true);
-    return response;
+    responseAuth.setResult(true);
+    return responseAuth;
   }
 
 
-  public Response isActiveSession(String sessionId) {
-    Response response = new Response();
+  public ResponseAuth isActiveSession(String sessionId) {
+    ResponseAuth responseAuth = new ResponseAuth();
     boolean isLogin = false;
 
     if (redisCache.isCacheSession(sessionId)) {
       int id = redisCache.findUserIdBySessionId(sessionId);
-      response.setUser(getUserInfo(id));
+      responseAuth.setUser(getUserInfo(id));
       isLogin = true;
     }
 
-    response.setResult(isLogin);
+    responseAuth.setResult(isLogin);
 
-    return response;
+    return responseAuth;
 
   }
 
-  private UserInfoResponse getUserInfo(int id) {
-    UserInfoResponse userInfoResponse = new UserInfoResponse();
+  private AuthUserInfoResponse getUserInfo(int id) {
+    AuthUserInfoResponse authUserInfoResponse = new AuthUserInfoResponse();
 
     String name = userRepository.findById(id).get().getName();
     String email = userRepository.findById(id).get().getEmail();
@@ -183,24 +183,23 @@ public class AuthService {
     int modCount = 0;                                                       //пока нет инфы о кол. постов поэтому 0
 
     boolean moderation = isModerator(id);
-    boolean settings = isModerator(
-        id);                                     //непонятно что за настройка
+    boolean settings = isModerator(id);                                     //непонятно что за настройка
 
-    userInfoResponse.setId(id);
-    userInfoResponse.setName(name);
-    userInfoResponse.setPhoto(photo);
-    userInfoResponse.setEmail(email);
-    userInfoResponse.setModeration(moderation);
-    userInfoResponse.setModerationCount(modCount);
-    userInfoResponse.setSettings(settings);
+    authUserInfoResponse.setId(id);
+    authUserInfoResponse.setName(name);
+    authUserInfoResponse.setPhoto(photo);
+    authUserInfoResponse.setEmail(email);
+    authUserInfoResponse.setModeration(moderation);
+    authUserInfoResponse.setModerationCount(modCount);
+    authUserInfoResponse.setSettings(settings);
 
-    return userInfoResponse;
+    return authUserInfoResponse;
   }
 
 
-  public Response profileSetup(HttpSession httpSession, EditProfileRequest editProfileRequest) {
-    Response response = new Response();
-    ErrorsInfoResponse errorsInfoResponse = new ErrorsInfoResponse();
+  public ResponseAuth profileSetup(HttpSession httpSession, EditProfileRequest editProfileRequest) {
+    ResponseAuth responseAuth = new ResponseAuth();
+    AuthErrorsInfoResponse authErrorsInfoResponse = new AuthErrorsInfoResponse();
     String sessionId = httpSession.getId();
 
     boolean isActive = isActiveSession(sessionId).getResult();
@@ -237,7 +236,7 @@ public class AuthService {
 //                        if (isNameNotNull(value)) {
 //                            user.setName(value);
 //                        } else {
-//                            response.put(param, "Имя указано неверно");
+//                            responseAuth.put(param, "Имя указано неверно");
 //                            isErrors = true;
 //                        }
 //                        break;
@@ -246,7 +245,7 @@ public class AuthService {
 //                        if (isExistEmail(value)) {
 //                            user.setEmail(value);
 //                        }else {
-//                            response.put(param, "Этот e-mail уже зарегистрирован");
+//                            responseAuth.put(param, "Этот e-mail уже зарегистрирован");
 //                            isErrors = true;
 //                        }
 //                        break;
@@ -273,10 +272,10 @@ public class AuthService {
 //        }
 //        else
 //        {
-//            response.put("result", "unauthorized");
+//            responseAuth.put("result", "unauthorized");
 //        }
     }
-    return response;
+    return responseAuth;
   }
 //    }
 

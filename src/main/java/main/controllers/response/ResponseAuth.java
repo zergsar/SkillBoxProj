@@ -4,11 +4,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serializable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Response implements Serializable {
+public class ResponseAuth implements Serializable {
 
   private boolean result;
-  private UserInfoResponse user;
-  private ErrorsInfoResponse errors;
+  private AuthUserInfoResponse user;
+  private AuthErrorsInfoResponse errors;
 
 
   public boolean getResult() {
@@ -19,19 +19,19 @@ public class Response implements Serializable {
     this.result = result;
   }
 
-  public UserInfoResponse getUser() {
+  public AuthUserInfoResponse getUser() {
     return user;
   }
 
-  public void setUser(UserInfoResponse user) {
+  public void setUser(AuthUserInfoResponse user) {
     this.user = user;
   }
 
-  public ErrorsInfoResponse getErrors() {
+  public AuthErrorsInfoResponse getErrors() {
     return errors;
   }
 
-  public void setErrors(ErrorsInfoResponse errors) {
+  public void setErrors(AuthErrorsInfoResponse errors) {
     this.errors = errors;
   }
 }
