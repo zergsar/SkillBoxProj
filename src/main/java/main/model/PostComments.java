@@ -21,11 +21,10 @@ public class PostComments {
   @Column(name = "id", nullable = false)
   private int id;
 
-
   @Column(name = "parent_id")
-  private int parentId;
+  private Integer parentId;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne
   @JoinColumn(name = "post_id", nullable = false)
   private Post postId;
 

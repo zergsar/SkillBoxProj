@@ -1,6 +1,9 @@
 package main.model;
 
 import java.util.Calendar;
+import java.util.List;
+import java.util.Set;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -11,7 +14,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import main.model.enums.ModerationStatus;
 
 @Entity
@@ -34,7 +39,7 @@ public class Post {
   @JoinColumn(name = "moderator_id")
   private User moderatorId;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne
   @JoinColumn(name = "user_id", nullable = false)
   private User userId;
 
@@ -49,6 +54,12 @@ public class Post {
 
   @Column(name = "view_count", nullable = false)
   private int viewCount;
+
+  @OneToMany(mappedBy = "postId", cascade = CascadeType.ALL)
+  private Set<PostComments> postsComments;
+
+  @OneToMany(mappedBy = "postId", cascade = CascadeType.ALL)
+  private List<Tag2Post> tag2Post;
 
 
   public Post() {
@@ -122,5 +133,21 @@ public class Post {
 
   public void setViewCount(int viewCount) {
     this.viewCount = viewCount;
+  }
+
+  public Set<PostComments> getPostsComments() {
+    return postsComments;
+  }
+
+  public void setPostsComments(Set<PostComments> postsComments) {
+    this.postsComments = postsComments;
+  }
+
+  public List<Tag2Post> getTag2Post() {
+    return tag2Post;
+  }
+
+  public void setTag2Post(List<Tag2Post> tag2Post) {
+    this.tag2Post = tag2Post;
   }
 }

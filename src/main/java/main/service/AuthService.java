@@ -143,7 +143,7 @@ public class AuthService {
   private boolean isModerator(int id) {
     boolean isModer = false;
     User user = userRepository.findById(id).get();
-    if (user.getIsModerator() == 1) {
+    if (user.isModerator() == 1) {
       isModer = true;
     }
 

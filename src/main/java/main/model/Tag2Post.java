@@ -19,7 +19,7 @@ public class Tag2Post {
   @Column(name = "id", nullable = false)
   private int id;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne
   @JoinColumn(name = "post_id", nullable = false)
   private Post postId;
 
@@ -45,5 +45,9 @@ public class Tag2Post {
 
   public void setTagId(Tag tagId) {
     this.tagId = tagId;
+  }
+
+  public void setId(int id) {
+    this.id = id;
   }
 }

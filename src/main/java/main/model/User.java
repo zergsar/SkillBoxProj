@@ -35,7 +35,7 @@ public class User {
   @Column(name = "password", nullable = false)
   private String password;
 
-  @OneToMany(mappedBy = "userId", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+  @OneToMany(mappedBy = "userId", cascade = CascadeType.ALL)
   private List<Post> posts;
 
   private String code;
@@ -60,7 +60,7 @@ public class User {
     return id;
   }
 
-  public byte getIsModerator() {
+  public byte isModerator() {
     return isModerator;
   }
 
@@ -114,5 +114,17 @@ public class User {
 
   public void setPhoto(String photo) {
     this.photo = photo;
+  }
+
+  public List<Post> getPosts() {
+    return posts;
+  }
+
+  public void setPosts(List<Post> posts) {
+    this.posts = posts;
+  }
+
+  public void setId(int id) {
+    this.id = id;
   }
 }

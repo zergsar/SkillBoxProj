@@ -7,6 +7,7 @@ public class PostUserInfoResponse {
 
   private int id;
   private String name;
+  private String photo;
 
   public int getId() {
     return id;
@@ -22,5 +23,13 @@ public class PostUserInfoResponse {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public String getPhoto() {
+    return photo;
+  }
+
+  public void setPhoto(String photo) {
+    this.photo = photo;
   }
 }

@@ -54,7 +54,7 @@ public class RedisCache {
     }
   }
 
-  public int findUserIdBySessionId(String sessionId) {
+  public Integer findUserIdBySessionId(String sessionId) {
     return rMapCache.get(sessionId);
   }
 
