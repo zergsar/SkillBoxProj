@@ -1,16 +1,20 @@
 package main.service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import javax.servlet.http.HttpSession;
 import main.controllers.response.PostCommentsResponse;
 import main.controllers.response.PostInfoResponse;
 import main.controllers.response.PostUserInfoResponse;
+import main.controllers.response.ResponseCalendar;
 import main.controllers.response.ResponsePost;
 import main.controllers.response.ResponsePostDetails;
 import main.model.Post;
@@ -18,8 +22,6 @@ import main.model.PostComments;
 import main.model.PostCommentsRepository;
 import main.model.PostRepository;
 import main.model.PostVotesRepository;
-import main.model.Tag2Post;
-import main.model.TagRepository;
 import main.model.User;
 import main.model.UserRepository;
 import main.model.cache.RedisCache;
@@ -37,16 +39,18 @@ public class PostService {
   private final UserRepository userRepository;
   private final PostVotesRepository postVotesRepository;
   private final PostCommentsRepository postCommentsRepository;
+  private final TagService tagService;
   private final RedisCache redisCache;
 
   public PostService(PostRepository postRepository, UserRepository userRepository,
       PostVotesRepository postVotesRepository,
-      PostCommentsRepository postCommentsRepository,
-      TagRepository tagRepository, RedisCache redisCache) {
+      PostCommentsRepository postCommentsRepository, TagService tagService,
+      RedisCache redisCache) {
     this.postRepository = postRepository;
     this.userRepository = userRepository;
     this.postVotesRepository = postVotesRepository;
     this.postCommentsRepository = postCommentsRepository;
+    this.tagService = tagService;
     this.redisCache = redisCache;
   }
 
@@ -54,68 +58,55 @@ public class PostService {
   public ResponsePost getAllPosts(int offset, int limit, String mode) {
 
     ResponsePost responsePost = new ResponsePost();
-    int currentPage = offset / limit;
-    Pageable pageRequest = PageRequest.of(currentPage, limit);
-    Page<Post> posts = null;
+    ArrayList<PostInfoResponse> postInfoResponseList = new ArrayList<>();
+    Page<Post> posts = Page.empty();
 
     switch (mode) {
       case "recent":
-        posts = postRepository.getRecentPosts(pageRequest);
+        posts = postRepository.getRecentPosts(getPagination(offset, limit));
         break;
 
       case "popular":
-        posts = postRepository.getPopularPosts(pageRequest);
+        posts = postRepository.getPopularPosts(getPagination(offset, limit));
         break;
 
       case "best":
-        posts = postRepository.getBestPosts(pageRequest);
+        posts = postRepository.getBestPosts(getPagination(offset, limit));
         break;
 
       case "early":
-        posts = postRepository.getEarlyPosts(pageRequest);
+        posts = postRepository.getEarlyPosts(getPagination(offset, limit));
         break;
+
+      default:
+        return responsePost;
     }
 
-    int totalPostsCount = posts.isEmpty() ? 0 : (int) posts.getTotalElements();
-    ArrayList<PostInfoResponse> postArrayList = collectPostsInfoForResponse(posts);
+    if (posts.isEmpty()) {
+      responsePost.setCount(0);
+      responsePost.setPosts(postInfoResponseList);
+      return responsePost;
+    }
 
-    responsePost.setCount(totalPostsCount);
-    responsePost.setPosts(postArrayList);
-
-    return responsePost;
+    return makePostResponse(posts);
   }
 
-  public ResponsePost getSearchPost(int offset, int limit, String query) {
+  public ResponsePost getPostsByTag(int offset, int limit, String tagName) {
     ResponsePost responsePost = new ResponsePost();
+    ArrayList<PostInfoResponse> postInfoResponseList = new ArrayList<>();
 
-    int currentPage = offset / limit;
-    Pageable page = PageRequest.of(currentPage, limit);
-    Page<Post> posts = postRepository.getFoundPosts(page, query);
-    int totalPostsCount = posts.isEmpty() ? 0 : (int) posts.getTotalElements();
+    List<Integer> postIdsList = tagService.getFoundByTagIdPosts(tagName);
 
-    ArrayList<PostInfoResponse> postArrayList = collectPostsInfoForResponse(posts);
+    if (postIdsList.size() == 0) {
+      responsePost.setCount(0);
+      responsePost.setPosts(postInfoResponseList);
+      return responsePost;
+    }
 
-    responsePost.setCount(totalPostsCount);
-    responsePost.setPosts(postArrayList);
-    return responsePost;
-  }
+    Page<Post> posts = postRepository
+        .getAllAllowedPostsByIds(getPagination(offset, limit), postIdsList);
 
-  public ResponsePost getPostByDate(int offset, int limit, String dateString) {
-    ResponsePost responsePost = new ResponsePost();
-
-    int currentPage = offset / limit;
-    Pageable page = PageRequest.of(currentPage, limit);
-
-    Calendar date = DateHandler.getDateFromString(dateString);
-
-    Page<Post> posts = postRepository.getPostsOnDate(page, date);
-    int totalPostsCount = posts.isEmpty() ? 0 : (int) posts.getTotalElements();
-    ArrayList<PostInfoResponse> postArrayList = collectPostsInfoForResponse(posts);
-
-    responsePost.setCount(totalPostsCount);
-    responsePost.setPosts(postArrayList);
-
-    return responsePost;
+    return makePostResponse(posts);
   }
 
   public ResponsePostDetails getPostDetails(int id) {
@@ -139,7 +130,7 @@ public class PostService {
     responsePostDetails.setDislikeCount(postVotesRepository.getDislikePost(post));
     responsePostDetails.setViewCount(post.getViewCount());
     responsePostDetails.setComments(getPostComments(post));
-    responsePostDetails.setTags(getPostTags(post));
+    responsePostDetails.setTags(tagService.getPostTags(post));
 
     return responsePostDetails;
   }
@@ -173,14 +164,58 @@ public class PostService {
     }
   }
 
+  public ResponseCalendar getCalendarPosts(String yearStr) {
+    ResponseCalendar responseCalendar = new ResponseCalendar();
+    HashMap<String, Integer> postDateCount = new HashMap<>();
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
-  private ArrayList<PostInfoResponse> collectPostsInfoForResponse(Page<Post> posts) {
+    int year =
+        yearStr.isEmpty() ? Calendar.getInstance().get(Calendar.YEAR) : Integer.parseInt(yearStr);
+
+    HashSet<Integer> yearsSet = new HashSet<>(postRepository.getAllYearsCreatingPosts());
+    List<Post> posts = postRepository.getAllVisiblePostsOnYear(year);
+
+    for (Post post : posts) {
+      Calendar date = post.getTime();
+      String dateStr = sdf.format(date.getTime());
+      postDateCount.computeIfPresent(dateStr, (key, value) -> value + 1);
+      postDateCount.putIfAbsent(dateStr, 1);
+    }
+
+    responseCalendar.setYears(yearsSet);
+    responseCalendar.setPosts(postDateCount);
+    return responseCalendar;
+  }
+
+
+  public ResponsePost getSearchPost(int offset, int limit, String query) {
+    Page<Post> posts = postRepository.getFoundPosts(getPagination(offset, limit), query);
+    return makePostResponse(posts);
+  }
+
+  public ResponsePost getPostByDate(int offset, int limit, String dateString) {
+    Page<Post> posts = postRepository.getPostsOnDate(getPagination(offset, limit), dateString);
+    return makePostResponse(posts);
+  }
+
+  private ResponsePost makePostResponse(Page<Post> posts) {
+    int totalPostsCount = (int) posts.getTotalElements();
+    ArrayList<PostInfoResponse> postArrayList = collectPostsInfoForResponse(posts);
+
+    ResponsePost responsePost = new ResponsePost();
+    responsePost.setCount(totalPostsCount);
+    responsePost.setPosts(postArrayList);
+    return responsePost;
+  }
+
+  private Pageable getPagination(int offset, int limit) {
+    return PageRequest.of(offset / limit, limit);
+  }
+
+
+  private ArrayList<PostInfoResponse> collectPostsInfoForResponse(Iterable<Post> posts) {
     PostInfoResponse postInfoResponse;
     ArrayList<PostInfoResponse> postsList = new ArrayList<>();
-
-    if (posts.isEmpty()) {
-      return postsList;
-    }
 
     for (Post post : posts) {
 
@@ -238,20 +273,6 @@ public class PostService {
     }
 
     return listPostComments;
-  }
-
-  private ArrayList<String> getPostTags(Post post) {
-    ArrayList<String> tags = new ArrayList<>();
-    List<Tag2Post> tagsList = post.getTag2Post();
-
-    if (!tagsList.isEmpty()) {
-      for (Tag2Post tags2Post : tagsList) {
-        tags.add(tags2Post.getTagId().getName());
-      }
-    }
-
-    return tags;
-
   }
 
 }

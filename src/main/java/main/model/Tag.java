@@ -1,11 +1,17 @@
 package main.model;
 
+import java.util.List;
+import java.util.function.Supplier;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Entity
 @Table(name = "tags")
@@ -19,6 +25,9 @@ public class Tag {
   @Column(name = "name", nullable = false)
   private String name;
 
+//  @OneToMany(mappedBy = "tagId", cascade = CascadeType.ALL)
+//  private List<Tag2Post> listTag2Post;
+
   public int getId() {
     return id;
   }
@@ -30,4 +39,16 @@ public class Tag {
   public void setName(String name) {
     this.name = name;
   }
+
+  public void setId(int id) {
+    this.id = id;
+  }
+
+//  public List<Tag2Post> getListTag2Post() {
+//    return listTag2Post;
+//  }
+//
+//  public void setListTag2Post(List<Tag2Post> listTag2Post) {
+//    this.listTag2Post = listTag2Post;
+//  }
 }

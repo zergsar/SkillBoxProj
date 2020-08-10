@@ -1,7 +1,8 @@
 package main.controllers;
 
-import java.util.Optional;
+import java.util.Calendar;
 import javax.servlet.http.HttpSession;
+import main.controllers.response.ResponseCalendar;
 import main.controllers.response.ResponsePost;
 import main.controllers.response.ResponsePostDetails;
 import main.service.PostService;
@@ -42,12 +43,24 @@ public class PostController {
   @GetMapping("/api/post/{id}")
   public ResponseEntity postDetails(@PathVariable int id, HttpSession httpSession) {
     ResponsePostDetails responsePostDetails = postService.getPostDetails(id);
-    if(responsePostDetails == null)
-    {
+    if (responsePostDetails == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
     }
     postService.postViewsCounter(id, httpSession);
     return new ResponseEntity(postService.getPostDetails(id), HttpStatus.OK);
+  }
+
+  @GetMapping("/api/post/byTag")
+  public ResponseEntity<ResponsePost> postByTag(@RequestParam("offset") int offset,
+      @RequestParam("limit") int limit, @RequestParam("tag") String tag) {
+    return new ResponseEntity<>(postService.getPostsByTag(offset, limit, tag), HttpStatus.OK);
+  }
+
+  @GetMapping("/api/calendar")
+  public ResponseEntity<ResponseCalendar> postCalendar(
+      @RequestParam(name = "year", required = false) String year) {
+    return new ResponseEntity<>(postService.getCalendarPosts(year), HttpStatus.OK);
+
   }
 
 

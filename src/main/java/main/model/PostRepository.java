@@ -1,6 +1,7 @@
 package main.model;
 
 import java.util.Calendar;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,13 +43,27 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
   Page<Post> getFoundPosts(Pageable pageable, @Param("query") String query);
 
   @Query(value = "SELECT * FROM posts WHERE is_active = 1"
-      + " AND moderation_status = 'ACCEPTED' AND time <= now() AND time = :date",
+      + " AND moderation_status = 'ACCEPTED' AND time <= now() AND DATE(time) = :date",
       nativeQuery = true)
-  Page<Post> getPostsOnDate(Pageable pageable, @Param("date") Calendar date);
+  Page<Post> getPostsOnDate(Pageable pageable, @Param("date") String date);
 
   @Query("SELECT p FROM Post as p WHERE p.id = :id AND p.isActive = 1"
       + " AND p.moderationStatus = 'ACCEPTED'"
       + " AND p.time <= now()")
   Optional<Post> getAllowedPostById(@Param("id") int id);
+
+  @Query("SELECT p FROM Post as p WHERE p.id in :ids AND p.isActive = 1"
+      + " AND p.moderationStatus = 'ACCEPTED'"
+      + " AND p.time <= now()")
+  Page<Post> getAllAllowedPostsByIds(Pageable pageable, @Param("ids") List<Integer> ids);
+
+  @Query(value = "SELECT * FROM posts WHERE is_active = 1"
+      + " AND moderation_status = 'ACCEPTED' AND time <= now() AND YEAR(time) = :year",
+      nativeQuery = true)
+  List<Post> getAllVisiblePostsOnYear(@Param("year") int year);
+
+  @Query(value = "SELECT DISTINCT(YEAR(time)) FROM posts WHERE time <= now()", nativeQuery = true)
+  List<Integer> getAllYearsCreatingPosts();
+
 
 }
