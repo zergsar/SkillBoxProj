@@ -8,29 +8,40 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import javax.servlet.http.HttpSession;
-import main.controllers.response.PostCommentsResponse;
-import main.controllers.response.PostInfoResponse;
-import main.controllers.response.PostUserInfoResponse;
-import main.controllers.response.ResponseCalendar;
-import main.controllers.response.ResponsePost;
-import main.controllers.response.ResponsePostDetails;
+import main.api.request.PostCreateRequest;
+import main.api.response.post.PostCommentsResponse;
+import main.api.response.post.PostCreatingErrorsResponse;
+import main.api.response.post.PostImageErrorsResponse;
+import main.api.response.post.PostInfoResponse;
+import main.api.response.post.PostUserInfoResponse;
+import main.api.response.post.ResponseCreatingPost;
+import main.api.response.post.ResponseImageUpload;
+import main.api.response.post.ResponsePost;
+import main.api.response.post.ResponsePostCalendar;
+import main.api.response.post.ResponsePostDetails;
 import main.model.Post;
 import main.model.PostComments;
-import main.model.PostCommentsRepository;
-import main.model.PostRepository;
-import main.model.PostVotesRepository;
+import main.model.Tag;
 import main.model.User;
-import main.model.UserRepository;
 import main.model.cache.RedisCache;
+import main.model.enums.ModerationStatus;
 import main.model.enums.UserInfoWithPhoto;
-import main.utils.DateHandler;
+import main.model.repository.PostCommentsRepository;
+import main.model.repository.PostRepository;
+import main.model.repository.PostVotesRepository;
+import main.model.repository.UserRepository;
+import main.utils.FileUtils;
+import main.utils.Generator;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class PostService {
@@ -41,6 +52,16 @@ public class PostService {
   private final PostCommentsRepository postCommentsRepository;
   private final TagService tagService;
   private final RedisCache redisCache;
+
+  @Value("${subdir.name.length}")
+  private int subdirNameLength;
+  @Value("${subdir.depth}")
+  private int subdirDepth;
+  @Value("${default.upload.dir}")
+  private String defaultUploadDir;
+  @Value("${image.upload.max.size}")
+  private int sizeImageMb;
+
 
   public PostService(PostRepository postRepository, UserRepository userRepository,
       PostVotesRepository postVotesRepository,
@@ -143,7 +164,7 @@ public class PostService {
     Optional<Post> postOptional = postRepository.findById(id);
 
     if (isCacheSession && postOptional.isPresent()) {
-      Integer userId = redisCache.findUserIdBySessionId(sessionId);
+      Integer userId = redisCache.findUserIdBySessionId(sessionId).get();
       Optional<User> userOptional = userRepository.findById(userId);
 
       if (userOptional.isPresent()) {
@@ -164,8 +185,8 @@ public class PostService {
     }
   }
 
-  public ResponseCalendar getCalendarPosts(String yearStr) {
-    ResponseCalendar responseCalendar = new ResponseCalendar();
+  public ResponsePostCalendar getCalendarPosts(String yearStr) {
+    ResponsePostCalendar responsePostCalendar = new ResponsePostCalendar();
     HashMap<String, Integer> postDateCount = new HashMap<>();
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -182,9 +203,9 @@ public class PostService {
       postDateCount.putIfAbsent(dateStr, 1);
     }
 
-    responseCalendar.setYears(yearsSet);
-    responseCalendar.setPosts(postDateCount);
-    return responseCalendar;
+    responsePostCalendar.setYears(yearsSet);
+    responsePostCalendar.setPosts(postDateCount);
+    return responsePostCalendar;
   }
 
 
@@ -196,6 +217,96 @@ public class PostService {
   public ResponsePost getPostByDate(int offset, int limit, String dateString) {
     Page<Post> posts = postRepository.getPostsOnDate(getPagination(offset, limit), dateString);
     return makePostResponse(posts);
+  }
+
+  public ResponseCreatingPost createNewPost(String sessionId, PostCreateRequest postCreateRequest) {
+
+    ResponseCreatingPost responseCreatingPost = validateCreatingPost(postCreateRequest, sessionId);
+    if (responseCreatingPost.isResult()) {
+      saveNewPostToBase(sessionId, postCreateRequest);
+    }
+
+    return responseCreatingPost;
+  }
+
+  public ResponseImageUpload uploadImageToPost(MultipartFile image) {
+    ResponseImageUpload responseImageUpload = validateImage(image);
+    if (!responseImageUpload.isResult()) {
+      return responseImageUpload;
+    }
+
+    String subDirNames = Generator.getRandomPathToImage(subdirNameLength, subdirDepth);
+    String dir =
+        (defaultUploadDir.endsWith("/") ? defaultUploadDir : defaultUploadDir + "/") + subDirNames;
+
+    responseImageUpload.setPathToImage(FileUtils.uploadFileToSubDir(dir, image).replace("\\", "/"));
+
+    System.out.println(responseImageUpload.getPathToImage());
+    return responseImageUpload;
+  }
+
+  private ResponseCreatingPost validateCreatingPost(PostCreateRequest postCreateRequest,
+      String sessionId) {
+
+    ResponseCreatingPost responseCreatingPost = new ResponseCreatingPost();
+    PostCreatingErrorsResponse postCreatingErrorsResponse = new PostCreatingErrorsResponse();
+    boolean isInputInfoRight = true;
+
+    Document doc = Jsoup.parseBodyFragment(postCreateRequest.getText());
+    String text = doc.text();
+
+    if (postCreateRequest.getTitle().length() < 3) {
+      postCreatingErrorsResponse.setTitle("Заголовок не установлен");
+      isInputInfoRight = false;
+    }
+    if (text.length() < 50) {
+      postCreatingErrorsResponse.setText("Текст публикации слишком короткий");
+      isInputInfoRight = false;
+    }
+    if (redisCache.findUserIdBySessionId(sessionId).isEmpty()) {
+      System.out.println("Session expired, or user not loginned");
+      isInputInfoRight = false;
+    }
+
+    responseCreatingPost.setResult(isInputInfoRight);
+
+    if (!isInputInfoRight) {
+      responseCreatingPost.setErrors(postCreatingErrorsResponse);
+    }
+
+    return responseCreatingPost;
+  }
+
+  private void saveNewPostToBase(String sessionId, PostCreateRequest postCreateRequest) {
+    Calendar timePost = postCreateRequest.getTimestamp();
+    Calendar currentTime = Calendar.getInstance();
+
+    String title = postCreateRequest.getTitle();
+    String text = postCreateRequest.getText();
+    byte isActive = postCreateRequest.getActive();
+    ArrayList<String> tags = postCreateRequest.getTags();
+
+    Optional<Integer> userId = redisCache.findUserIdBySessionId(sessionId);
+
+    if (userId.isPresent()) {
+
+      Optional<User> user = userRepository.findById(userId.get());
+
+      if (timePost.before(currentTime)) {
+        timePost = currentTime;
+      }
+
+      if (user.isEmpty()) {
+        throw new UsernameNotFoundException("User not found");
+      }
+
+      Post post = postRepository
+          .save(new Post(timePost, isActive, title, text, user.get(), null, ModerationStatus.NEW));
+
+      if (!tags.isEmpty()) {
+        linkPostAndTags(tags, post);
+      }
+    }
   }
 
   private ResponsePost makePostResponse(Page<Post> posts) {
@@ -211,7 +322,6 @@ public class PostService {
   private Pageable getPagination(int offset, int limit) {
     return PageRequest.of(offset / limit, limit);
   }
-
 
   private ArrayList<PostInfoResponse> collectPostsInfoForResponse(Iterable<Post> posts) {
     PostInfoResponse postInfoResponse;
@@ -273,6 +383,48 @@ public class PostService {
     }
 
     return listPostComments;
+  }
+
+  private void linkPostAndTags(ArrayList<String> tags, Post post) {
+    for (String tagName : tags) {
+      Optional<Tag> tag = tagService.getTagByName(tagName);
+      if (tag.isPresent()) {
+        tagService.createTag2PostLink(post, tag.get());
+      } else {
+        tagService.createTag2PostLink(post, tagService.createNewTag(tagName));
+      }
+    }
+  }
+
+  private ResponseImageUpload validateImage(MultipartFile image) {
+
+    ResponseImageUpload responseImageUpload = new ResponseImageUpload();
+    PostImageErrorsResponse postImageErrorsResponse = new PostImageErrorsResponse();
+    boolean isValidImage = true;
+
+    if (!(image.isEmpty() || image.getSize() == 0)) {
+      String contentType = image.getContentType();
+      String jpgType = "image/jpeg";
+      String pngType = "image/png";
+      boolean isAllowedImageFormat = contentType.equals(jpgType) || contentType.equals(pngType);
+
+      if (image.getSize() / 1000000 > sizeImageMb) {
+        isValidImage = false;
+        postImageErrorsResponse.setImage("Размер файла превышает допустимый размер");
+      }
+      if (!isAllowedImageFormat) {
+        isValidImage = false;
+        postImageErrorsResponse.setImage("Недопустимый формат изображения");
+      }
+    } else {
+      isValidImage = false;
+      postImageErrorsResponse.setImage("Файл пуст");
+    }
+
+    responseImageUpload.setResult(isValidImage);
+    responseImageUpload.setErrors(postImageErrorsResponse);
+
+    return responseImageUpload;
   }
 
 }

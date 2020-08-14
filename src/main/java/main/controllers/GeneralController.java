@@ -1,13 +1,13 @@
 package main.controllers;
 
 import main.model.Tag;
-import main.model.TagRepository;
+import main.model.repository.TagRepository;
 import main.service.AuthService;
 import main.service.GeneralService;
 import net.minidev.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -58,6 +58,7 @@ public class GeneralController {
   }
 
   @GetMapping("/api/settings")
+  @Transactional(readOnly = true)
   public JSONObject getSettings() {
     return generalService.getSettingsFromBase();
   }

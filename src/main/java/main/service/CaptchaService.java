@@ -1,9 +1,9 @@
 package main.service;
 
 import java.util.Optional;
-import main.controllers.response.CaptchaInfoResponse;
+import main.api.response.captcha.CaptchaInfoResponse;
 import main.model.CaptchaCodes;
-import main.model.CaptchaCodesRepository;
+import main.model.repository.CaptchaCodesRepository;
 import main.utils.Generator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

@@ -35,7 +35,7 @@ public class PostComments {
   @Column(name = "time", nullable = false)
   private Calendar time;
 
-  @Column(name = "text", nullable = false)
+  @Column(columnDefinition = "TEXT NOT NULL", name = "text")
   private String text;
 
   public int getId() {

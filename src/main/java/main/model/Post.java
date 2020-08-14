@@ -1,5 +1,6 @@
 package main.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
@@ -8,7 +9,6 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -16,7 +16,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import main.model.enums.ModerationStatus;
 
 @Entity
@@ -35,10 +34,12 @@ public class Post {
   @Enumerated(EnumType.STRING)
   private ModerationStatus moderationStatus;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @JsonBackReference
+  @ManyToOne
   @JoinColumn(name = "moderator_id")
   private User moderatorId;
 
+  @JsonBackReference
   @ManyToOne
   @JoinColumn(name = "user_id", nullable = false)
   private User userId;
@@ -49,7 +50,7 @@ public class Post {
   @Column(name = "title", nullable = false)
   private String title;
 
-  @Column(name = "text", nullable = false)
+  @Column(columnDefinition = "TEXT NOT NULL", name = "text")
   private String text;
 
   @Column(name = "view_count", nullable = false)
@@ -63,6 +64,18 @@ public class Post {
 
 
   public Post() {
+
+  }
+
+  public Post(Calendar time, byte isActive, String title, String text, User user, User moderatorId,
+      ModerationStatus moderationStatus) {
+    this.time = time;
+    this.isActive = isActive;
+    this.title = title;
+    this.text = text;
+    this.userId = user;
+    this.moderatorId = moderatorId;
+    this.moderationStatus = moderationStatus;
 
   }
 

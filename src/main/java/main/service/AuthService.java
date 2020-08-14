@@ -2,21 +2,25 @@ package main.service;
 
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Optional;
 import javax.servlet.http.HttpSession;
-import main.controllers.request.EditProfileRequest;
-import main.controllers.request.LoginRequest;
-import main.controllers.request.RegistrationRequest;
-import main.controllers.response.AuthErrorsInfoResponse;
-import main.controllers.response.ResponseAuth;
-import main.controllers.response.AuthUserInfoResponse;
+import main.api.request.EditProfileRequest;
+import main.api.request.LoginRequest;
+import main.api.request.RegistrationRequest;
+import main.api.response.auth.AuthErrorsInfoResponse;
+import main.api.response.auth.ResponseAuth;
+import main.api.response.auth.AuthUserInfoResponse;
 import main.model.User;
-import main.model.UserRepository;
+import main.model.repository.UserRepository;
 import main.model.cache.RedisCache;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AuthService {
+public class AuthService implements UserDetailsService {
 
   private final UserRepository userRepository;
   private final CaptchaService captchaService;
@@ -122,7 +126,6 @@ public class AuthService {
     String password = user.getPassword();
 
     ResponseAuth responseAuth = new ResponseAuth();
-    AuthErrorsInfoResponse authErrorsInfoResponse = new AuthErrorsInfoResponse();
 
     if (isExistEmail(email)) {
       int id = userRepository.findByEmail(email).get().getId();
@@ -141,13 +144,11 @@ public class AuthService {
   }
 
   private boolean isModerator(int id) {
-    boolean isModer = false;
-    User user = userRepository.findById(id).get();
-    if (user.isModerator() == 1) {
-      isModer = true;
+    Optional<User> user = userRepository.findById(id);
+    if (user.isEmpty()) {
+      throw new RuntimeException("User not found");
     }
-
-    return isModer;
+    return user.get().isModerator() == 1;
   }
 
   public ResponseAuth logout(String sessionId) {
@@ -163,7 +164,7 @@ public class AuthService {
     boolean isLogin = false;
 
     if (redisCache.isCacheSession(sessionId)) {
-      int id = redisCache.findUserIdBySessionId(sessionId);
+      int id = redisCache.findUserIdBySessionId(sessionId).get();
       responseAuth.setUser(getUserInfo(id));
       isLogin = true;
     }
@@ -177,13 +178,21 @@ public class AuthService {
   private AuthUserInfoResponse getUserInfo(int id) {
     AuthUserInfoResponse authUserInfoResponse = new AuthUserInfoResponse();
 
-    String name = userRepository.findById(id).get().getName();
-    String email = userRepository.findById(id).get().getEmail();
-    String photo = userRepository.findById(id).get().getPhoto();
+    Optional<User> userOptional = userRepository.findById(id);
+
+    if (userOptional.isEmpty()){
+      throw new RuntimeException("User not found");
+    }
+
+    User user = userOptional.get();
+
+    String name = user.getName();
+    String email = user.getEmail();
+    String photo = user.getPhoto();
     int modCount = 0;                                                       //пока нет инфы о кол. постов поэтому 0
 
-    boolean moderation = isModerator(id);
-    boolean settings = isModerator(id);                                     //непонятно что за настройка
+    boolean moderation = user.isModerator() == 1;
+    boolean settings = moderation;
 
     authUserInfoResponse.setId(id);
     authUserInfoResponse.setName(name);
@@ -206,7 +215,7 @@ public class AuthService {
     boolean isErrors = false;
 
     if (isActive) {
-      int id = redisCache.findUserIdBySessionId(sessionId);
+      int id = redisCache.findUserIdBySessionId(sessionId).get();
       User user = userRepository.findById(id).get();
       String email = editProfileRequest.getEmail();
       String name = editProfileRequest.getName();
@@ -277,6 +286,7 @@ public class AuthService {
     }
     return responseAuth;
   }
+
 //    }
 
 //    private JSONObject changeUserInformation(User user, String param, String value)
@@ -288,6 +298,18 @@ public class AuthService {
 //        userRepository.
 //
 //    }
+
+
+  @Override
+  public UserDetails loadUserByUsername(String name) throws UsernameNotFoundException {
+    Optional<User> user = userRepository.findByName(name);
+
+    if (user.isEmpty()) {
+      throw new UsernameNotFoundException("User not found");
+    }
+
+    return user.get();
+  }
 
 
 }

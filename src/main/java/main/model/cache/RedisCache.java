@@ -1,5 +1,6 @@
 package main.model.cache;
 
+import java.util.Optional;
 import main.config.RedisConfig;
 import org.redisson.Redisson;
 import org.redisson.api.RKeys;
@@ -54,8 +55,11 @@ public class RedisCache {
     }
   }
 
-  public Integer findUserIdBySessionId(String sessionId) {
-    return rMapCache.get(sessionId);
+  public Optional<Integer> findUserIdBySessionId(String sessionId) {
+    if(rMapCache.isEmpty()){
+      return Optional.empty();
+    }
+    return Optional.of(rMapCache.getOrDefault(sessionId, null));
   }
 
 }

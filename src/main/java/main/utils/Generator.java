@@ -13,6 +13,21 @@ import javax.imageio.ImageIO;
 
 public class Generator {
 
+  public static String getRandomPathToImage(int lenChar, int countSubDir) {
+    String randomString = generateRandomString(lenChar * countSubDir);
+    StringBuilder sb = new StringBuilder();
+
+    for (int i = 0; i < countSubDir; i++) {
+      String randChar = new Random().ints(lenChar, 0, randomString.length())
+          .mapToObj(randomString::charAt)
+          .map(Object::toString)
+          .collect(Collectors.joining());
+
+      sb.append("/").append(randChar);
+    }
+    return sb.toString();
+  }
+
   public static String generateRandomString(int len) {
     String symbols = "abcdefghijklmnopqrstuvwxyz0123456789";
     return new Random().ints(len, 0, symbols.length())

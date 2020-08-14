@@ -27,3 +27,13 @@ captcha.timeout: 1
 ##Length captcha codes
 captcha.visible.length: 7
 captcha.secret.length: 17
+
+#Subdirectories config
+subdir.name.length: 3
+subdir.depth: 3
+
+#Default directories for upload images
+default.upload.dir: C:/test/resources/uploads
+
+#Size upload image (Mb)
+image.upload.max.size: 5

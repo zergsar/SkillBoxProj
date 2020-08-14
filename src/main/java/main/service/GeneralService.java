@@ -1,6 +1,6 @@
 package main.service;
 
-import main.model.GlobalSettingsRepository;
+import main.model.repository.GlobalSettingsRepository;
 import net.minidev.json.JSONObject;
 import org.springframework.stereotype.Service;
 

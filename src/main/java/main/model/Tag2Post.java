@@ -27,6 +27,14 @@ public class Tag2Post {
   @JoinColumn(name = "tag_id", nullable = false)
   private Tag tagId;
 
+  public Tag2Post(){}
+
+  public Tag2Post(Post postId, Tag tagId)
+  {
+    this.postId = postId;
+    this.tagId = tagId;
+  }
+
   public int getId() {
     return id;
   }
