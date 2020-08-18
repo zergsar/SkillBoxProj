@@ -6,16 +6,17 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import javax.servlet.http.HttpSession;
-import main.api.request.PostCreateRequest;
+import java.util.stream.Collectors;
+import main.api.request.PostCreateOrEditRequest;
 import main.api.response.post.PostCommentsResponse;
 import main.api.response.post.PostCreatingErrorsResponse;
 import main.api.response.post.PostImageErrorsResponse;
 import main.api.response.post.PostInfoResponse;
 import main.api.response.post.PostUserInfoResponse;
-import main.api.response.post.ResponseCreatingPost;
+import main.api.response.post.ResponseCreatingOrEditPost;
 import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
@@ -23,6 +24,7 @@ import main.api.response.post.ResponsePostDetails;
 import main.model.Post;
 import main.model.PostComments;
 import main.model.Tag;
+import main.model.Tag2Post;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.enums.ModerationStatus;
@@ -39,7 +41,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -80,7 +81,7 @@ public class PostService {
 
     ResponsePost responsePost = new ResponsePost();
     ArrayList<PostInfoResponse> postInfoResponseList = new ArrayList<>();
-    Page<Post> posts = Page.empty();
+    Page<Post> posts;
 
     switch (mode) {
       case "recent":
@@ -130,50 +131,50 @@ public class PostService {
     return makePostResponse(posts);
   }
 
-  public ResponsePostDetails getPostDetails(int id) {
-    Optional<Post> postOptional = postRepository.getAllowedPostById(id);
+  public ResponsePostDetails getPostDetails(int id, String sessionId) {
+    Optional<Post> postOptional = postRepository.findById(id);
+    ResponsePostDetails responsePostDetails = new ResponsePostDetails();
 
     if (postOptional.isEmpty()) {
       return null;
     }
 
     Post post = postOptional.get();
-    int userId = post.getUserId().getId();
-    ResponsePostDetails responsePostDetails = new ResponsePostDetails();
+    boolean isCacheSession = redisCache.isCacheSession(sessionId);
+    boolean isPostVisible = post.getIsActive() == 1;
+    boolean isPostTimeBeforeCurrentTime = post.getTime().before(Calendar.getInstance());
+    boolean isAllowedStatus = post.getModerationStatus().equals(ModerationStatus.ACCEPTED);
 
-    responsePostDetails.setId(id);
-    responsePostDetails.setActive(post.getIsActive() == 1);
-    responsePostDetails.setTimestamp(post.getTime().getTimeInMillis() / 1000);
-    responsePostDetails.setUser(getUserInfoResponse(userId, UserInfoWithPhoto.NO));
-    responsePostDetails.setTitle(post.getTitle());
-    responsePostDetails.setText(post.getText());
-    responsePostDetails.setLikeCount(postVotesRepository.getLikePost(post));
-    responsePostDetails.setDislikeCount(postVotesRepository.getDislikePost(post));
-    responsePostDetails.setViewCount(post.getViewCount());
-    responsePostDetails.setComments(getPostComments(post));
-    responsePostDetails.setTags(tagService.getPostTags(post));
+    if (isPostTimeBeforeCurrentTime && isAllowedStatus && isPostVisible) {
+      responsePostDetails = collectPostDetailsInfo(post);
+    } else if (isCacheSession) {
+      User user = getUserFromSession(sessionId);
+      if (user == null) {
+        return null;
+      }
+      boolean isUserAuthorOrModerator =
+          user.isModerator() == 1 || post.getUserId().getId() == user.getId();
+
+      if (isUserAuthorOrModerator) {
+        responsePostDetails = collectPostDetailsInfo(post);
+      }
+    }
 
     return responsePostDetails;
   }
 
-  public void postViewsCounter(int id, HttpSession httpSession) {
-    String sessionId = httpSession.getId();
+  public void postViewsCounter(int id, String sessionId) {
     boolean isCacheSession = redisCache.isCacheSession(sessionId);
     Post post;
 
     Optional<Post> postOptional = postRepository.findById(id);
-
     if (isCacheSession && postOptional.isPresent()) {
-      Integer userId = redisCache.findUserIdBySessionId(sessionId).get();
-      Optional<User> userOptional = userRepository.findById(userId);
-
-      if (userOptional.isPresent()) {
+      User user = getUserFromSession(sessionId);
+      if (user != null) {
         post = postOptional.get();
-        User user = userOptional.get();
-
         boolean isModerator = user.isModerator() == 1;
-        boolean isUserOwnerPost = post.getUserId().getId() == user.getId();
-        if (!isModerator && !isUserOwnerPost) {
+        boolean isAuthorPost = post.getUserId().getId() == user.getId();
+        if (!isModerator && !isAuthorPost) {
           post.setViewCount(post.getViewCount() + 1);
           postRepository.save(post);
         }
@@ -219,14 +220,72 @@ public class PostService {
     return makePostResponse(posts);
   }
 
-  public ResponseCreatingPost createNewPost(String sessionId, PostCreateRequest postCreateRequest) {
+  public ResponseCreatingOrEditPost createNewPost(String sessionId,
+      PostCreateOrEditRequest postCreateOrEditRequest) {
 
-    ResponseCreatingPost responseCreatingPost = validateCreatingPost(postCreateRequest, sessionId);
-    if (responseCreatingPost.isResult()) {
-      saveNewPostToBase(sessionId, postCreateRequest);
+    ResponseCreatingOrEditPost responseCreatingOrEditPost = validateCreatingOrEditPost(
+        postCreateOrEditRequest, sessionId);
+    if (responseCreatingOrEditPost.isResult()) {
+      saveNewPostToBase(sessionId, postCreateOrEditRequest);
     }
 
-    return responseCreatingPost;
+    return responseCreatingOrEditPost;
+  }
+
+
+  public ResponsePost getModerationPost(int offset, int limit, String status, String sessionId) {
+    ResponsePost responsePost = new ResponsePost();
+    Optional<Integer> userId = redisCache.findUserIdBySessionId(sessionId);
+    if (userId.isEmpty()) {
+      System.out.println("User not found");
+      return responsePost;
+    }
+
+    Page<Post> posts;
+
+    if (status.equals("new")) {
+      posts = postRepository.getPostForModeration(getPagination(offset, limit), status);
+    } else {
+      posts = postRepository.getModeratedPost(getPagination(offset, limit), userId.get(), status);
+    }
+    return makePostResponse(posts);
+  }
+
+  public ResponsePost getUserPost(int offset, int limit, String status, String sessionId) {
+    ResponsePost responsePost = new ResponsePost();
+    User user = getUserFromSession(sessionId);
+    if (user == null) {
+      System.out.println("User not found");
+      return responsePost;
+    }
+
+    Page<Post> posts;
+
+    switch (status) {
+      case "inactive":
+        posts = postRepository.getInactivePost(getPagination(offset, limit), user.getId());
+        break;
+
+      case "pending":
+        posts = postRepository.getUserPostByStatus(getPagination(offset, limit), user.getId(),
+            ModerationStatus.NEW.toString());
+        break;
+
+      case "declined":
+        posts = postRepository.getUserPostByStatus(getPagination(offset, limit), user.getId(),
+            ModerationStatus.DECLINED.toString());
+        break;
+
+      case "published":
+        posts = postRepository.getUserPostByStatus(getPagination(offset, limit), user.getId(),
+            ModerationStatus.ACCEPTED.toString());
+        break;
+
+      default:
+        return responsePost;
+    }
+    return makePostResponse(posts);
+
   }
 
   public ResponseImageUpload uploadImageToPost(MultipartFile image) {
@@ -245,21 +304,37 @@ public class PostService {
     return responseImageUpload;
   }
 
-  private ResponseCreatingPost validateCreatingPost(PostCreateRequest postCreateRequest,
+  public ResponseCreatingOrEditPost getEditPost(int id, String sessionId,
+      PostCreateOrEditRequest postCreateOrEditRequest) {
+    ResponseCreatingOrEditPost responseCreatingOrEditPost = new ResponseCreatingOrEditPost();
+    Optional<Post> post = postRepository.findById(id);
+
+    if (post.isEmpty()) {
+      return responseCreatingOrEditPost;
+    }
+
+    responseCreatingOrEditPost = validateCreatingOrEditPost(postCreateOrEditRequest, sessionId);
+
+    if (responseCreatingOrEditPost.isResult()) {
+      updatePostInBase(sessionId, postCreateOrEditRequest, post.get());
+    }
+
+    return responseCreatingOrEditPost;
+  }
+
+  private ResponseCreatingOrEditPost validateCreatingOrEditPost(
+      PostCreateOrEditRequest postCreateOrEditRequest,
       String sessionId) {
 
-    ResponseCreatingPost responseCreatingPost = new ResponseCreatingPost();
+    ResponseCreatingOrEditPost responseCreatingOrEditPost = new ResponseCreatingOrEditPost();
     PostCreatingErrorsResponse postCreatingErrorsResponse = new PostCreatingErrorsResponse();
     boolean isInputInfoRight = true;
 
-    Document doc = Jsoup.parseBodyFragment(postCreateRequest.getText());
-    String text = doc.text();
-
-    if (postCreateRequest.getTitle().length() < 3) {
+    if (postCreateOrEditRequest.getTitle().length() < 3) {
       postCreatingErrorsResponse.setTitle("Заголовок не установлен");
       isInputInfoRight = false;
     }
-    if (text.length() < 50) {
+    if (getTextWithoutHtml(postCreateOrEditRequest.getText()).length() < 50) {
       postCreatingErrorsResponse.setText("Текст публикации слишком короткий");
       isInputInfoRight = false;
     }
@@ -268,44 +343,85 @@ public class PostService {
       isInputInfoRight = false;
     }
 
-    responseCreatingPost.setResult(isInputInfoRight);
+    responseCreatingOrEditPost.setResult(isInputInfoRight);
 
     if (!isInputInfoRight) {
-      responseCreatingPost.setErrors(postCreatingErrorsResponse);
+      responseCreatingOrEditPost.setErrors(postCreatingErrorsResponse);
     }
 
-    return responseCreatingPost;
+    return responseCreatingOrEditPost;
   }
 
-  private void saveNewPostToBase(String sessionId, PostCreateRequest postCreateRequest) {
-    Calendar timePost = postCreateRequest.getTimestamp();
+
+  private void updatePostInBase(String sessionId,
+      PostCreateOrEditRequest postCreateOrEditRequest, Post post) {
+    Calendar timePost = postCreateOrEditRequest.getTimestamp();
     Calendar currentTime = Calendar.getInstance();
 
-    String title = postCreateRequest.getTitle();
-    String text = postCreateRequest.getText();
-    byte isActive = postCreateRequest.getActive();
-    ArrayList<String> tags = postCreateRequest.getTags();
+    String title = postCreateOrEditRequest.getTitle();
+    String text = postCreateOrEditRequest.getText();
+    byte isActive = postCreateOrEditRequest.getActive();
+    ArrayList<String> tags = postCreateOrEditRequest.getTags();
 
-    Optional<Integer> userId = redisCache.findUserIdBySessionId(sessionId);
+    User user = getUserFromSession(sessionId);
 
-    if (userId.isPresent()) {
+    if (user != null) {
+      if (timePost.before(currentTime)) {
+        timePost = currentTime;
+      }
 
-      Optional<User> user = userRepository.findById(userId.get());
+      post.setTitle(title);
+      post.setText(text);
+      post.setIsActive(isActive);
+      post.setTime(timePost);
+
+      postRepository.save(post);
+
+      List<Tag2Post> tag2PostList = post.getTag2Post();
+      if (tags.isEmpty()) {
+        deleteTags2Post(post, tag2PostList);
+      } else {
+        ArrayList<String> postTagsList = tagService.getPostTags(post);
+        List<String> duplicateTags = postTagsList.stream()
+            .distinct()
+            .filter(x -> tags.stream().anyMatch(y -> y.equals(x)))
+            .collect(Collectors.toList());
+        tags.removeAll(duplicateTags);
+        postTagsList.clear();
+        postTagsList.addAll(tags);
+        postTagsList.addAll(duplicateTags);
+        deleteTags2Post(post, tag2PostList);
+        linkPostAndTags(postTagsList, post);
+      }
+    }
+  }
+
+  private void saveNewPostToBase(String sessionId,
+      PostCreateOrEditRequest postCreateOrEditRequest) {
+    Calendar timePost = postCreateOrEditRequest.getTimestamp();
+    Calendar currentTime = Calendar.getInstance();
+
+    String title = postCreateOrEditRequest.getTitle();
+    String text = postCreateOrEditRequest.getText();
+    byte isActive = postCreateOrEditRequest.getActive();
+    ArrayList<String> tags = postCreateOrEditRequest.getTags();
+
+    User user = getUserFromSession(sessionId);
+
+    if (user != null) {
 
       if (timePost.before(currentTime)) {
         timePost = currentTime;
       }
 
-      if (user.isEmpty()) {
-        throw new UsernameNotFoundException("User not found");
-      }
-
       Post post = postRepository
-          .save(new Post(timePost, isActive, title, text, user.get(), null, ModerationStatus.NEW));
+          .save(new Post(timePost, isActive, title, text, user, null, ModerationStatus.NEW));
 
       if (!tags.isEmpty()) {
         linkPostAndTags(tags, post);
       }
+    } else {
+      System.out.println("user not found");
     }
   }
 
@@ -336,7 +452,7 @@ public class PostService {
       postInfoResponse.setTimestamp(post.getTime().getTimeInMillis() / 1000);
       postInfoResponse.setUser(getUserInfoResponse(userId, UserInfoWithPhoto.NO));
       postInfoResponse.setTitle(post.getTitle());
-      postInfoResponse.setAnnounce(post.getText());
+      postInfoResponse.setAnnounce(getTextWithoutHtml(post.getText()));
       postInfoResponse.setLikeCount(postVotesRepository.getLikePost(post));
       postInfoResponse.setDislikeCount(postVotesRepository.getDislikePost(post));
       postInfoResponse.setViewCount(post.getViewCount());
@@ -347,6 +463,25 @@ public class PostService {
     }
     return postsList;
   }
+
+  private ResponsePostDetails collectPostDetailsInfo(Post post) {
+    ResponsePostDetails responsePostDetails = new ResponsePostDetails();
+    responsePostDetails.setId(post.getId());
+    responsePostDetails.setActive(post.getIsActive() == 1);
+    responsePostDetails.setTimestamp(post.getTime().getTimeInMillis() / 1000);
+    responsePostDetails
+        .setUser(getUserInfoResponse(post.getUserId().getId(), UserInfoWithPhoto.NO));
+    responsePostDetails.setTitle(post.getTitle());
+    responsePostDetails.setText(post.getText());
+    responsePostDetails.setLikeCount(postVotesRepository.getLikePost(post));
+    responsePostDetails.setDislikeCount(postVotesRepository.getDislikePost(post));
+    responsePostDetails.setViewCount(post.getViewCount());
+    responsePostDetails.setComments(getPostComments(post));
+    responsePostDetails.setTags(tagService.getPostTags(post));
+
+    return responsePostDetails;
+  }
+
 
   private PostUserInfoResponse getUserInfoResponse(int userId, UserInfoWithPhoto withPhoto) {
     PostUserInfoResponse postUserInfoResponse = new PostUserInfoResponse();
@@ -406,7 +541,8 @@ public class PostService {
       String contentType = image.getContentType();
       String jpgType = "image/jpeg";
       String pngType = "image/png";
-      boolean isAllowedImageFormat = contentType.equals(jpgType) || contentType.equals(pngType);
+      boolean isAllowedImageFormat =
+          Objects.requireNonNull(contentType).equals(jpgType) || contentType.equals(pngType);
 
       if (image.getSize() / 1000000 > sizeImageMb) {
         isValidImage = false;
@@ -425,6 +561,29 @@ public class PostService {
     responseImageUpload.setErrors(postImageErrorsResponse);
 
     return responseImageUpload;
+  }
+
+  private String getTextWithoutHtml(String text) {
+    Document doc = Jsoup.parseBodyFragment(text);
+    return doc.text();
+  }
+
+  private User getUserFromSession(String sessionId) {
+
+    Optional<Integer> userId = redisCache.findUserIdBySessionId(sessionId);
+    if (userId.isEmpty()) {
+      return null;
+    }
+    Optional<User> userOptional = userRepository.findById(userId.get());
+    if (userOptional.isEmpty()) {
+      return null;
+    }
+    return userOptional.get();
+  }
+
+  private void deleteTags2Post(Post post, List<Tag2Post> tag2PostList) {
+    post.setTag2Post(new ArrayList<>());
+    tagService.deleteAllTag2PostLinks(tag2PostList);
   }
 
 }

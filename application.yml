@@ -23,7 +23,7 @@ spring.jpa.show-sql: true
 
 #Captcha settings
 ##Timeout deleting captcha in minutes
-captcha.timeout: 1
+captcha.timeout: 10
 ##Length captcha codes
 captcha.visible.length: 7
 captcha.secret.length: 17

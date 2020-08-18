@@ -1,5 +1,6 @@
 package main.model;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -23,7 +24,7 @@ public class Tag2Post {
   @JoinColumn(name = "post_id", nullable = false)
   private Post postId;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne
   @JoinColumn(name = "tag_id", nullable = false)
   private Tag tagId;
 

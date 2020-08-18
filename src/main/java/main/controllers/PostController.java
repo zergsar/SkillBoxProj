@@ -1,8 +1,8 @@
 package main.controllers;
 
 import javax.servlet.http.HttpSession;
-import main.api.request.PostCreateRequest;
-import main.api.response.post.ResponseCreatingPost;
+import main.api.request.PostCreateOrEditRequest;
+import main.api.response.post.ResponseCreatingOrEditPost;
 import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
@@ -10,11 +10,11 @@ import main.api.response.post.ResponsePostDetails;
 import main.service.PostService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.web.server.header.ReferrerPolicyServerHttpHeadersWriter;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,12 +54,13 @@ public class PostController {
   @Transactional
   public ResponseEntity<ResponsePostDetails> postDetails(@PathVariable int id,
       HttpSession httpSession) {
-    ResponsePostDetails responsePostDetails = postService.getPostDetails(id);
+    String sessionId = httpSession.getId();
+    ResponsePostDetails responsePostDetails = postService.getPostDetails(id, sessionId);
     if (responsePostDetails == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
     }
-    postService.postViewsCounter(id, httpSession);
-    return new ResponseEntity<>(postService.getPostDetails(id), HttpStatus.OK);
+    postService.postViewsCounter(id, sessionId);
+    return new ResponseEntity<>(responsePostDetails, HttpStatus.OK);
   }
 
   @GetMapping("/api/post/byTag")
@@ -74,15 +75,30 @@ public class PostController {
   public ResponseEntity<ResponsePostCalendar> postCalendar(
       @RequestParam(name = "year", required = false) String year) {
     return new ResponseEntity<>(postService.getCalendarPosts(year), HttpStatus.OK);
+  }
 
+  @GetMapping("/api/post/moderation")
+  @Transactional(readOnly = true)
+  public ResponseEntity<ResponsePost> moderationPost(@RequestParam("offset") int offset,
+      @RequestParam("limit") int limit, @RequestParam("status") String status, HttpSession httpSession){
+    String sessionId = httpSession.getId();
+    return new ResponseEntity<>(postService.getModerationPost(offset, limit, status, sessionId), HttpStatus.OK);
+  }
+
+  @GetMapping("/api/post/my")
+  @Transactional
+  public ResponseEntity<ResponsePost> userPost(@RequestParam("offset") int offset,
+      @RequestParam("limit") int limit, @RequestParam("status") String status, HttpSession httpSession){
+    String sessionId = httpSession.getId();
+    return new ResponseEntity<>(postService.getUserPost(offset, limit, status, sessionId), HttpStatus.OK);
   }
 
   @PostMapping("/api/post")
   @Transactional
-  public ResponseEntity<ResponseCreatingPost> createPost(HttpSession httpSession,
-      @RequestBody PostCreateRequest postCreateRequest) {
+  public ResponseEntity<ResponseCreatingOrEditPost> createPost(HttpSession httpSession,
+      @RequestBody PostCreateOrEditRequest postCreateOrEditRequest) {
     String sessionId = httpSession.getId();
-    return new ResponseEntity<>(postService.createNewPost(sessionId, postCreateRequest),
+    return new ResponseEntity<>(postService.createNewPost(sessionId, postCreateOrEditRequest),
         HttpStatus.OK);
   }
 
@@ -97,4 +113,12 @@ public class PostController {
   }
 
 
+  @PutMapping("api/post/{id}")
+  @Transactional
+  public ResponseEntity<ResponseCreatingOrEditPost> editPost(@PathVariable int id,
+      HttpSession httpSession, @RequestBody PostCreateOrEditRequest postCreateOrEditRequest) {
+    String sessionId = httpSession.getId();
+    return new ResponseEntity<>(postService.getEditPost(id, sessionId, postCreateOrEditRequest),
+        HttpStatus.OK);
+  }
 }

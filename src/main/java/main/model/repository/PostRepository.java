@@ -1,6 +1,5 @@
 package main.model.repository;
 
-import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 import main.model.Post;
@@ -65,6 +64,23 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
 
   @Query(value = "SELECT DISTINCT(YEAR(time)) FROM posts WHERE time <= now()", nativeQuery = true)
   List<Integer> getAllYearsCreatingPosts();
+
+  @Query(value = "SELECT * FROM posts WHERE is_active = 1"
+      + " AND moderation_status = :status", nativeQuery = true)
+  Page<Post> getPostForModeration(Pageable pageable, @Param("status") String status);
+
+  @Query(value = "SELECT * FROM posts WHERE is_active = 1 AND moderation_status = :status"
+      + " AND moderator_id = :id", nativeQuery = true)
+  Page<Post> getModeratedPost(Pageable pageable, @Param("id") int id,
+      @Param("status") String status);
+
+  @Query(value = "SELECT * FROM posts WHERE is_active = 0 AND user_id = :id", nativeQuery = true)
+  Page<Post> getInactivePost(Pageable pageable, @Param("id") int id);
+
+  @Query(value = "SELECT * FROM posts WHERE is_active = 1 AND moderation_status = :status"
+      + " AND user_id = :id", nativeQuery = true)
+  Page<Post> getUserPostByStatus(Pageable pageable, @Param("id") int id,
+      @Param("status") String status);
 
 
 }

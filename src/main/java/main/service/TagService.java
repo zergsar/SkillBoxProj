@@ -54,8 +54,7 @@ public class TagService {
   }
 
   public Optional<Tag> getTagByName(String tagName) {
-    Optional<Tag> tagId = tagRepository.findIdByName(tagName);
-    return tagId;
+    return tagRepository.findIdByName(tagName);
   }
 
   public Tag createNewTag(String tagName) {
@@ -64,6 +63,10 @@ public class TagService {
 
   public void createTag2PostLink(Post post, Tag tag) {
     tag2PostRepository.save(new Tag2Post(post, tag));
+  }
+
+  public void deleteAllTag2PostLinks(List<Tag2Post> tagList){
+      tag2PostRepository.deleteAll(tagList);
   }
 
 }

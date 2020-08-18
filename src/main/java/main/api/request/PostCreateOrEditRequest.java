@@ -3,7 +3,7 @@ package main.api.request;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-public class PostCreateRequest {
+public class PostCreateOrEditRequest {
 
   private Calendar timestamp;
   private byte active;
