@@ -1,9 +1,10 @@
 package main.api.request;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-public class PostCreateOrEditRequest {
+public class PostCreateOrEditRequest implements Serializable {
 
   private Calendar timestamp;
   private byte active;

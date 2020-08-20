@@ -84,6 +84,10 @@ alter table post_comments
     add constraint post_comments_user_fk
     foreign key (user_id) references users (id);
 
+alter table post_comments
+    add constraint post_comments_parent_post_fk
+    foreign key (parent_id) references post_comments (id);
+
 alter table post_votes
     add constraint post_votes_fk
     foreign key (post_id) references posts (id);

@@ -21,8 +21,9 @@ public class PostComments {
   @Column(name = "id", nullable = false)
   private int id;
 
-  @Column(name = "parent_id")
-  private Integer parentId;
+  @ManyToOne
+  @JoinColumn(name = "parent_id")
+  private PostComments parentId;
 
   @ManyToOne
   @JoinColumn(name = "post_id", nullable = false)
@@ -38,15 +39,34 @@ public class PostComments {
   @Column(columnDefinition = "TEXT NOT NULL", name = "text")
   private String text;
 
+  public PostComments(){
+
+  }
+
+  public PostComments(String text, Post postId, PostComments parentId, User userId){
+    this.text = text;
+    this.postId = postId;
+    this.parentId = parentId;
+    this.userId = userId;
+    this.time = Calendar.getInstance();
+  }
+
+  public PostComments(String text, Post postId, User userId){
+    this.text = text;
+    this.postId = postId;
+    this.userId = userId;
+    this.time = Calendar.getInstance();
+  }
+
   public int getId() {
     return id;
   }
 
-  public int getParentId() {
+  public PostComments getParentId() {
     return parentId;
   }
 
-  public void setParentId(int parentId) {
+  public void setParentId(PostComments parentId) {
     this.parentId = parentId;
   }
 

@@ -25,12 +25,14 @@ public class AuthService implements UserDetailsService {
   private final UserRepository userRepository;
   private final CaptchaService captchaService;
   private final RedisCache redisCache;
+  private final PostService postService;
 
   public AuthService(UserRepository userRepository, CaptchaService captchaService,
-      RedisCache redisCache) {
+      RedisCache redisCache, PostService postService) {
     this.userRepository = userRepository;
     this.captchaService = captchaService;
     this.redisCache = redisCache;
+    this.postService = postService;
   }
 
   private ResponseAuth verifyInfoNewUser(RegistrationRequest user) {
@@ -191,14 +193,18 @@ public class AuthService implements UserDetailsService {
     String photo = user.getPhoto();
     int modCount = 0;                                                       //пока нет инфы о кол. постов поэтому 0
 
-    boolean moderation = user.isModerator() == 1;
-    boolean settings = moderation;
+    boolean isModerator = user.isModerator() == 1;
+    boolean settings = isModerator;
+
+    if(isModerator){
+      modCount = postService.getCountPostsForModeration();
+    }
 
     authUserInfoResponse.setId(id);
     authUserInfoResponse.setName(name);
     authUserInfoResponse.setPhoto(photo);
     authUserInfoResponse.setEmail(email);
-    authUserInfoResponse.setModeration(moderation);
+    authUserInfoResponse.setModeration(isModerator);
     authUserInfoResponse.setModerationCount(modCount);
     authUserInfoResponse.setSettings(settings);
 

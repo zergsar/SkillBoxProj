@@ -59,6 +59,9 @@ public class Post {
   @OneToMany(mappedBy = "postId", cascade = CascadeType.ALL)
   private Set<PostComments> postsComments;
 
+  @OneToMany(mappedBy = "parentId", cascade = CascadeType.ALL)
+  private Set<PostComments> parentComments;
+
   @OneToMany(mappedBy = "postId", cascade = CascadeType.ALL)
   private List<Tag2Post> tag2Post;
 
@@ -156,11 +159,27 @@ public class Post {
     this.postsComments = postsComments;
   }
 
+  public void setOnePostsComments(PostComments postsComments) {
+    this.postsComments.add(postsComments);
+  }
+
   public List<Tag2Post> getTag2Post() {
     return tag2Post;
   }
 
   public void setTag2Post(List<Tag2Post> tag2Post) {
     this.tag2Post = tag2Post;
+  }
+
+  public Set<PostComments> getParentComments() {
+    return parentComments;
+  }
+
+  public void setParentComments(Set<PostComments> parentComments) {
+    this.parentComments = parentComments;
+  }
+
+  public void setOneParentComments(PostComments postsComments) {
+    this.parentComments.add(postsComments);
   }
 }

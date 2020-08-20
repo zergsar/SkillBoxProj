@@ -1,8 +1,8 @@
 package main.api.request;
 
-import main.model.enums.SortMode;
+import java.io.Serializable;
 
-public class PostsRequest {
+public class PostsRequest implements Serializable {
 
   private int offset;
   private int limit;

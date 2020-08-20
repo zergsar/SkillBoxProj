@@ -1,13 +1,19 @@
 package main.controllers;
 
 import javax.servlet.http.HttpSession;
+import main.api.request.CommentToPostRequest;
+import main.api.request.DecisionToPostRequest;
 import main.api.request.PostCreateOrEditRequest;
+import main.api.response.comment.ResponseCommentToPost;
 import main.api.response.post.ResponseCreatingOrEditPost;
 import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
 import main.api.response.post.ResponsePostDetails;
+import main.api.response.post.ResponseResult;
+import main.api.response.tag.ResponseTags;
 import main.service.PostService;
+import main.service.TagService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +30,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class PostController {
 
   private final PostService postService;
+  private final TagService tagService;
 
-  public PostController(PostService postService) {
+  public PostController(PostService postService, TagService tagService) {
     this.postService = postService;
+    this.tagService = tagService;
   }
 
   @GetMapping("/api/post")
@@ -80,17 +88,33 @@ public class PostController {
   @GetMapping("/api/post/moderation")
   @Transactional(readOnly = true)
   public ResponseEntity<ResponsePost> moderationPost(@RequestParam("offset") int offset,
-      @RequestParam("limit") int limit, @RequestParam("status") String status, HttpSession httpSession){
+      @RequestParam("limit") int limit, @RequestParam("status") String status,
+      HttpSession httpSession) {
     String sessionId = httpSession.getId();
-    return new ResponseEntity<>(postService.getModerationPost(offset, limit, status, sessionId), HttpStatus.OK);
+    return new ResponseEntity<>(postService.getModerationPost(offset, limit, status, sessionId),
+        HttpStatus.OK);
   }
+
+
+  @PostMapping("/api/moderation")
+  @Transactional
+  public ResponseEntity<ResponseResult> decisionToPost(
+      @RequestBody DecisionToPostRequest decisionToPostRequest,
+      HttpSession httpSession) {
+    String sessionId = httpSession.getId();
+    return new ResponseEntity<>(postService.getDecisionToPost(sessionId, decisionToPostRequest),
+        HttpStatus.OK);
+  }
+
 
   @GetMapping("/api/post/my")
   @Transactional
   public ResponseEntity<ResponsePost> userPost(@RequestParam("offset") int offset,
-      @RequestParam("limit") int limit, @RequestParam("status") String status, HttpSession httpSession){
+      @RequestParam("limit") int limit, @RequestParam("status") String status,
+      HttpSession httpSession) {
     String sessionId = httpSession.getId();
-    return new ResponseEntity<>(postService.getUserPost(offset, limit, status, sessionId), HttpStatus.OK);
+    return new ResponseEntity<>(postService.getUserPost(offset, limit, status, sessionId),
+        HttpStatus.OK);
   }
 
   @PostMapping("/api/post")
@@ -112,7 +136,6 @@ public class PostController {
     return new ResponseEntity(responseImageUpload, HttpStatus.BAD_REQUEST);
   }
 
-
   @PutMapping("api/post/{id}")
   @Transactional
   public ResponseEntity<ResponseCreatingOrEditPost> editPost(@PathVariable int id,
@@ -121,4 +144,29 @@ public class PostController {
     return new ResponseEntity<>(postService.getEditPost(id, sessionId, postCreateOrEditRequest),
         HttpStatus.OK);
   }
+
+  @PostMapping("/api/comment")
+  @Transactional
+  public ResponseEntity<ResponseCommentToPost> commentPost(
+      @RequestBody CommentToPostRequest commentToPostRequest, HttpSession httpSession) {
+    String sessionId = httpSession.getId();
+    ResponseCommentToPost responseCommentToPost = postService
+        .addCommentToPost(commentToPostRequest, sessionId);
+    if (responseCommentToPost == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+    }
+    if (!responseCommentToPost.isResult() && responseCommentToPost.getErrors() == null) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+    }
+    return new ResponseEntity<>(responseCommentToPost, HttpStatus.OK);
+  }
+
+  @GetMapping("/api/tag")
+  @Transactional(readOnly = true)
+  public ResponseEntity<ResponseTags> tagsWeight(
+      @RequestParam(name = "query", required = false, defaultValue = "") String query){
+    return new ResponseEntity<>(tagService.getTagsAndWeights(query), HttpStatus.OK);
+  }
+
+
 }

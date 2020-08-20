@@ -82,5 +82,15 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
   Page<Post> getUserPostByStatus(Pageable pageable, @Param("id") int id,
       @Param("status") String status);
 
+  @Query(value = "SELECT count(*) FROM posts WHERE is_active = 1 AND moderation_status = 'NEW'"
+      + " AND moderator_id is null", nativeQuery = true)
+  Integer getCountNewPostsForModeration();
+
+  @Query(value = "SELECT count(*) FROM posts WHERE is_active = 1 AND moderation_status = 'ACCEPTED'"
+      + " AND time <= now()", nativeQuery = true)
+  Integer getCountAllVisiblePosts();
+
+
+
 
 }

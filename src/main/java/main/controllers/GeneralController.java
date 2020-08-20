@@ -108,10 +108,10 @@ public class GeneralController {
 //    }
 
 
-  @GetMapping("/api/tag")
-  public Iterable<Tag> getTag() {
-    return tagRepository.findAll();
-
-  }
+//  @GetMapping("/api/tag")
+//  public Iterable<Tag> getTag() {
+//    return tagRepository.findAll();
+//
+//  }
 
 }
