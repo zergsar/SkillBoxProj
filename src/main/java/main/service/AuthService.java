@@ -8,11 +8,11 @@ import main.api.request.EditProfileRequest;
 import main.api.request.LoginRequest;
 import main.api.request.RegistrationRequest;
 import main.api.response.auth.AuthErrorsInfoResponse;
-import main.api.response.auth.ResponseAuth;
 import main.api.response.auth.AuthUserInfoResponse;
+import main.api.response.auth.ResponseAuth;
 import main.model.User;
-import main.model.repository.UserRepository;
 import main.model.cache.RedisCache;
+import main.model.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -182,7 +182,7 @@ public class AuthService implements UserDetailsService {
 
     Optional<User> userOptional = userRepository.findById(id);
 
-    if (userOptional.isEmpty()){
+    if (userOptional.isEmpty()) {
       throw new RuntimeException("User not found");
     }
 
@@ -196,7 +196,7 @@ public class AuthService implements UserDetailsService {
     boolean isModerator = user.isModerator() == 1;
     boolean settings = isModerator;
 
-    if(isModerator){
+    if (isModerator) {
       modCount = postService.getCountPostsForModeration();
     }
 
@@ -228,82 +228,16 @@ public class AuthService implements UserDetailsService {
 
       HashMap<String, Object> fields = editProfileRequest.getProfileFieldsMap();
 
+      System.out.println("!!! EMAIL" + editProfileRequest.getEmail());
+      System.out.println("!!! NAME" + editProfileRequest.getName());
+
       for (String field : fields.keySet()) {
         System.out.println(field + " " + fields.get(field));
 
       }
-
-//            if(!user.getEmail().equals(email) || isExistEmail(email))
-//            {
-//                user.setEmail(email);
-//            }
-//            if(!user.getName().equals(name))
-//            {
-//                user.setName(name);
-//            }
-
-//            for(String param : editProfileRequest.keySet())
-//            {
-//                String value = jsonObject.get(param).toString();
-//
-//                switch(param) {
-//                    case "name":
-//                        if (isNameNotNull(value)) {
-//                            user.setName(value);
-//                        } else {
-//                            responseAuth.put(param, "Имя указано неверно");
-//                            isErrors = true;
-//                        }
-//                        break;
-//
-//                    case "email":
-//                        if (isExistEmail(value)) {
-//                            user.setEmail(value);
-//                        }else {
-//                            responseAuth.put(param, "Этот e-mail уже зарегистрирован");
-//                            isErrors = true;
-//                        }
-//                        break;
-//
-//                    case "photo":
-//                        try {
-//                            if(!photo.isEmpty()) {
-//
-//                                long fileSize = photo.getSize();
-//                                byte[] allBytes = photo.getBytes();
-//
-//                                System.out.println("Размер файла: " + fileSize);
-//
-//                                System.out.println(allBytes[54]);
-//                            }
-//
-//
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-//
-//                }
-//            }
-//        }
-//        else
-//        {
-//            responseAuth.put("result", "unauthorized");
-//        }
     }
     return responseAuth;
   }
-
-//    }
-
-//    private JSONObject changeUserInformation(User user, String param, String value)
-//    {
-//        JSONObject response = new JSONObject();
-//
-//
-//
-//        userRepository.
-//
-//    }
 
 
   @Override
@@ -316,6 +250,64 @@ public class AuthService implements UserDetailsService {
 
     return user.get();
   }
+
+//  public void userValidation() {
+//
+//    if (!user.getEmail().equals(email) || isExistEmail(email)) {
+//      user.setEmail(email);
+//    }
+//    if (!user.getName().equals(name)) {
+//      user.setName(name);
+//    }
+//
+//    for (String param : editProfileRequest.keySet()) {
+//      String value = jsonObject.get(param).toString();
+//
+//      switch (param) {
+//        case "name":
+//          if (isNameNotNull(value)) {
+//            user.setName(value);
+//          } else {
+//            responseAuth.put(param, "Имя указано неверно");
+//            isErrors = true;
+//          }
+//          break;
+//
+//        case "email":
+//          if (isExistEmail(value)) {
+//            user.setEmail(value);
+//          } else {
+//            responseAuth.put(param, "Этот e-mail уже зарегистрирован");
+//            isErrors = true;
+//          }
+//          break;
+//
+//        case "photo":
+//          try {
+//            if (!photo.isEmpty()) {
+//
+//              long fileSize = photo.getSize();
+//              byte[] allBytes = photo.getBytes();
+//
+//              System.out.println("Размер файла: " + fileSize);
+//
+//              System.out.println(allBytes[54]);
+//            }
+//
+//
+//          } catch (IOException e) {
+//            e.printStackTrace();
+//          }
+//
+//      }
+//    }
+//  }
+//        else
+//
+//  {
+//    responseAuth.put("result", "unauthorized");
+//  }
+//}
 
 
 }

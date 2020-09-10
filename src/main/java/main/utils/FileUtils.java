@@ -36,7 +36,7 @@ public class FileUtils {
     } catch (IOException e) {
       e.printStackTrace();
     }
-    return subdirWithFileName.getAbsolutePath();
+    return subdirWithFileName.getPath();
   }
 
 

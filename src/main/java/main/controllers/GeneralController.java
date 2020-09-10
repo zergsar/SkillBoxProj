@@ -1,5 +1,6 @@
 package main.controllers;
 
+import main.api.response.info.AppInfo;
 import main.model.Tag;
 import main.model.repository.TagRepository;
 import main.service.AuthService;
@@ -30,8 +31,6 @@ public class GeneralController {
   @Value("${copyrightFrom}")
   private String copyrightFrom;
 
-  private JSONObject response;
-
   private final AuthService authService;
   private final TagRepository tagRepository;
   private final GeneralService generalService;
@@ -45,15 +44,14 @@ public class GeneralController {
 
 
   @GetMapping("/api/init")
-  public JSONObject init() {
-    response = new JSONObject();
-    response.put("title", title);
-    response.put("subtitle", subtitle);
-    response.put("phone", phone);
-    response.put("email", email);
-    response.put("copyright", copyright);
-    response.put("copyrightFrom", copyrightFrom);
-
+  public AppInfo init() {
+    AppInfo response = new AppInfo();
+    response.setTitle(title);
+    response.setSubtitle(subtitle);
+    response.setPhone(phone);
+    response.setEmail(email);
+    response.setCopyright(copyright);
+    response.setCopyrightFrom(copyrightFrom);
     return response;
   }
 
@@ -63,12 +61,6 @@ public class GeneralController {
     return generalService.getSettingsFromBase();
   }
 
-
-  @PostMapping(value = "/api/profile/my")
-  public ResponseEntity getTypeContent(@RequestHeader("Content-Type") String contType) {
-
-    return null;
-  }
 
 //    public ResponseEntity profileMulti(HttpSession httpSession,
 //                                    @RequestHeader("Content-Type") String contType,

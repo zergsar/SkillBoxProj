@@ -335,7 +335,10 @@ public class PostService {
 
     responseImageUpload.setPathToImage(FileUtils.uploadFileToSubDir(dir, image).replace("\\", "/"));
 
-    System.out.println(responseImageUpload.getPathToImage());
+    String pathToRes = FileUtils.uploadFileToSubDir(dir, image).replace("\\", "/")
+        .replace(defaultUploadDir, "");
+    pathToRes = pathToRes.startsWith("/") ? "/upload" + pathToRes : "/upload/" + pathToRes;
+    responseImageUpload.setPathToImage(pathToRes);
     return responseImageUpload;
   }
 
