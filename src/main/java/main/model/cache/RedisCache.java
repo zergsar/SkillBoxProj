@@ -28,7 +28,7 @@ public class RedisCache {
 
   private void init() {
     Config config = new Config();
-    config.useSingleServer().setUsername("h").setPassword("p0a1805a79d9f6dae64b32265792aff24adddd7375fb85698280b03a29710fca5")
+    config.useSingleServer().setPassword("p0a1805a79d9f6dae64b32265792aff24adddd7375fb85698280b03a29710fca5")
         .setAddress("redis://ec2-52-16-131-126.eu-west-1.compute.amazonaws.com:12019")
         .setConnectionPoolSize(10)
         .setConnectionMinimumIdleSize(10)
@@ -36,7 +36,7 @@ public class RedisCache {
     try {
       redisson = Redisson.create(config);
     } catch (RedisConnectionException Exc) {
-      System.out.println("Не удалось подключиться к Redis");
+      System.out.println("Failed connect to Redis");
       System.out.println(Exc.getMessage());
     }
     rKeys = redisson.getKeys();
