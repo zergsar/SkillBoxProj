@@ -7,11 +7,11 @@ copyright: Тимиров Сергей
 copyrightFrom: 2020
 
 #Redis configuration
-redis.host: ${REDISDB_HOST:127.0.0.1}
-redis.port: ${REDISDB_PORT:6379}
+redis.host: ${REDISDB_HOST:ec2-52-16-131-126.eu-west-1.compute.amazonaws.com}
+redis.port: ${REDISDB_PORT:12019}
 
 #MySQL configuration
-spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://localhost:3307/blogdb?serverTimezone=UTC}
+spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://bc96a3334a5591:397cceba@eu-cdbr-west-03.cleardb.net/heroku_05b79667752e77a?useUnicode=true&characterEncoding=utf-8&reconnect=true}
 #spring.datasource.url: jdbc:mysql://localhost:3307/blogdb?serverTimezone=UTC
 #spring.datasource.username: root
 #spring.datasource.password: еуые
