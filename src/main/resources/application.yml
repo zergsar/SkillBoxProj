@@ -7,11 +7,10 @@ copyright: Тимиров Сергей
 copyrightFrom: 2020
 
 #Redis configuration
-redis.host: ec2-52-16-131-126.eu-west-1.compute.amazonaws.com
-redis.port: 12019
+redis.datasource.url: ${REDISDB_URL:redis://h:p0a1805a79d9f6dae64b32265792aff24adddd7375fb85698280b03a29710fca5@ec2-52-16-131-126.eu-west-1.compute.amazonaws.com:12019}
 
 #MySQL configuration
-spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://bc96a3334a5591:397cceba@eu-cdbr-west-03.cleardb.net/heroku_05b79667752e77a?useUnicode=true&characterEncoding=utf-8&reconnect=true}
+spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://bc96a3334a5591:397cceba@eu-cdbr-west-03.cleardb.net/heroku_05b79667752e77a?useUnicode=true&characterEncoding=utf-8&serverTimezone=UTC&reconnect=true}
 #spring.datasource.url: jdbc:mysql://localhost:3307/blogdb?serverTimezone=UTC
 #spring.datasource.username: root
 #spring.datasource.password: еуые
@@ -35,7 +34,7 @@ subdir.name.length: 3
 subdir.depth: 3
 
 #Default directories for upload images
-default.upload.dir: src/main/webapp/upload/
+default.upload.dir: ./src/main/webapp/upload/
 
 #Size upload image (Mb)
 image.upload.max.size: 5

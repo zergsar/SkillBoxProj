@@ -1,5 +1,6 @@
 package main.model.cache;
 
+import java.net.URI;
 import java.util.Optional;
 import main.config.RedisConfig;
 import org.redisson.Redisson;
@@ -8,6 +9,7 @@ import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.RedisConnectionException;
 import org.redisson.config.Config;
+import org.redisson.config.SingleServerConfig;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,12 +29,20 @@ public class RedisCache {
   }
 
   private void init() {
+
+    URI redisUri = URI.create(redisConfig.getUrl());
+
     Config config = new Config();
-    config.useSingleServer().setPassword("p0a1805a79d9f6dae64b32265792aff24adddd7375fb85698280b03a29710fca5")
-        .setAddress("redis://ec2-52-16-131-126.eu-west-1.compute.amazonaws.com:12019")
+    SingleServerConfig serverConfig = config.useSingleServer()
+        .setAddress("redis://" + redisUri.getHost() + ":" + redisUri.getPort())
         .setConnectionPoolSize(10)
         .setConnectionMinimumIdleSize(10)
         .setTimeout(5000);
+
+    if (redisUri.getUserInfo() != null) {
+      serverConfig.setPassword(redisUri.getUserInfo().substring(redisUri.getUserInfo().indexOf(":")+1));
+    }
+
     try {
       redisson = Redisson.create(config);
     } catch (RedisConnectionException Exc) {

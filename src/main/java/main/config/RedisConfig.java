@@ -4,25 +4,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "redis")
+@ConfigurationProperties(prefix = "redis.datasource")
 public class RedisConfig {
 
-  private String host;
-  private String port;
+  private String url;
 
-  public String getHost() {
-    return host;
+  public String getUrl() {
+    return url;
   }
 
-  public void setHost(String host) {
-    this.host = host;
-  }
-
-  public String getPort() {
-    return port;
-  }
-
-  public void setPort(String port) {
-    this.port = port;
+  public void setUrl(String url) {
+    this.url = url;
   }
 }
