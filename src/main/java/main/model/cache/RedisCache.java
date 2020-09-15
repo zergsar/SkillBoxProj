@@ -56,7 +56,7 @@ public class RedisCache {
   }
 
   public Optional<Integer> findUserIdBySessionId(String sessionId) {
-    if(rMapCache.isEmpty()){
+    if (rMapCache.isEmpty()) {
       return Optional.empty();
     }
     return Optional.of(rMapCache.getOrDefault(sessionId, null));

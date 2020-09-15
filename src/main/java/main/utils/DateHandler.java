@@ -6,8 +6,7 @@ import java.util.Calendar;
 
 public class DateHandler {
 
-  public static Calendar getDateFromString(String dateString)
-  {
+  public static Calendar getDateFromString(String dateString) {
     Calendar calendar = Calendar.getInstance();
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
     try {

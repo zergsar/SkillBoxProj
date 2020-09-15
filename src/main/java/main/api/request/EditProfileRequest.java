@@ -3,7 +3,6 @@ package main.api.request;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
-import org.hibernate.mapping.Collection;
 import org.springframework.web.multipart.MultipartFile;
 
 public class EditProfileRequest implements Serializable {
@@ -72,11 +71,9 @@ public class EditProfileRequest implements Serializable {
 
     Iterator iterKey = fields.keySet().iterator();
 
-    while(iterKey.hasNext())
-    {
+    while (iterKey.hasNext()) {
       String val = iterKey.next().toString();
-      if(val == null)
-      {
+      if (val == null) {
         iterKey.remove();
       }
     }

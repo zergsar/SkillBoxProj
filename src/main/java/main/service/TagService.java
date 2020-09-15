@@ -79,7 +79,7 @@ public class TagService {
 
   public ResponseTags getTagsAndWeights(String query) {
     ResponseTags responseTags = new ResponseTags();
-    int countVisiblePosts = postRepository.getCountAllVisiblePosts();
+    int countVisiblePosts = postRepository.getTotalCountVisiblePosts();
     HashSet<TagsWeightResponse> tagWeight = new HashSet<>();
     TagsWeightResponse twr;
     Iterable<Tag> tagIter = tagRepository.findAll();
@@ -97,21 +97,20 @@ public class TagService {
       tagWeight.add(twr);
     }
 
-    try {
+    if(!tagWeight.isEmpty()) {
       float maxWeight = tagWeight.stream().max(Comparator.comparing(TagsWeightResponse::getWeight))
-          .map(TagsWeightResponse::getWeight).orElseThrow(Exception::new);
-      tagWeight.forEach(t -> t.setWeight(t.getWeight() / maxWeight));
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+          .get().getWeight();
 
-    if (!query.isBlank()) {
-      Optional<TagsWeightResponse> tagsWeightResponseOptional = tagWeight.stream()
-          .filter(t -> t.getName().equals(query)).findFirst();
-      if (tagsWeightResponseOptional.isPresent()) {
-        twr = tagsWeightResponseOptional.get();
-        tagWeight.clear();
-        tagWeight.add(twr);
+      tagWeight.forEach(t -> t.setWeight(t.getWeight() / maxWeight));
+
+      if (!query.isBlank()) {
+        Optional<TagsWeightResponse> tagsWeightResponseOptional = tagWeight.stream()
+            .filter(t -> t.getName().equals(query)).findFirst();
+        if (tagsWeightResponseOptional.isPresent()) {
+          twr = tagsWeightResponseOptional.get();
+          tagWeight.clear();
+          tagWeight.add(twr);
+        }
       }
     }
     responseTags.setTags(tagWeight);

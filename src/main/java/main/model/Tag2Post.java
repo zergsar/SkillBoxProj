@@ -1,9 +1,7 @@
 package main.model;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -28,10 +26,10 @@ public class Tag2Post {
   @JoinColumn(name = "tag_id", nullable = false)
   private Tag tagId;
 
-  public Tag2Post(){}
+  public Tag2Post() {
+  }
 
-  public Tag2Post(Post postId, Tag tagId)
-  {
+  public Tag2Post(Post postId, Tag tagId) {
     this.postId = postId;
     this.tagId = tagId;
   }

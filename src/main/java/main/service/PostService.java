@@ -10,38 +10,37 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import main.api.request.CommentToPostRequest;
 import main.api.request.DecisionToPostRequest;
-import main.api.request.PostCreateOrEditRequest;
-import main.api.response.comment.CommentErrorsResponse;
-import main.api.response.comment.ResponseCommentToPost;
+import main.api.request.CreateUpdatePostRequest;
+import main.api.request.PostVoteRequest;
 import main.api.response.post.PostCommentsResponse;
 import main.api.response.post.PostCreatingErrorsResponse;
 import main.api.response.post.PostImageErrorsResponse;
 import main.api.response.post.PostInfoResponse;
 import main.api.response.post.PostUserInfoResponse;
-import main.api.response.post.ResponseCreatingOrEditPost;
+import main.api.response.post.ResponseCreateUpdatePost;
 import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
 import main.api.response.post.ResponsePostDetails;
-import main.api.response.post.ResponseResult;
+import main.api.response.ResponseResult;
 import main.model.Post;
 import main.model.PostComments;
+import main.model.PostVotes;
 import main.model.Tag;
 import main.model.Tag2Post;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.enums.ModerationStatus;
 import main.model.enums.UserInfoWithPhoto;
+import main.model.enums.VoteType;
 import main.model.repository.PostCommentsRepository;
 import main.model.repository.PostRepository;
 import main.model.repository.PostVotesRepository;
 import main.model.repository.UserRepository;
 import main.utils.FileUtils;
 import main.utils.Generator;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
+import main.utils.TextHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -58,7 +57,6 @@ public class PostService {
   private final PostCommentsRepository postCommentsRepository;
   private final TagService tagService;
   private final RedisCache redisCache;
-  private final CommentService commentService;
 
   @Value("${subdir.name.length}")
   private int subdirNameLength;
@@ -73,14 +71,13 @@ public class PostService {
   public PostService(PostRepository postRepository, UserRepository userRepository,
       PostVotesRepository postVotesRepository,
       PostCommentsRepository postCommentsRepository, TagService tagService,
-      RedisCache redisCache, CommentService commentService) {
+      RedisCache redisCache) {
     this.postRepository = postRepository;
     this.userRepository = userRepository;
     this.postVotesRepository = postVotesRepository;
     this.postCommentsRepository = postCommentsRepository;
     this.tagService = tagService;
     this.redisCache = redisCache;
-    this.commentService = commentService;
   }
 
 
@@ -227,34 +224,33 @@ public class PostService {
     return makePostResponse(posts);
   }
 
-  public ResponseCreatingOrEditPost createNewPost(String sessionId,
-      PostCreateOrEditRequest postCreateOrEditRequest) {
+  public ResponseCreateUpdatePost createNewPost(String sessionId,
+      CreateUpdatePostRequest createUpdatePostRequest) {
 
-    ResponseCreatingOrEditPost responseCreatingOrEditPost = validateCreatingOrEditPost(
-        postCreateOrEditRequest, sessionId);
-    if (responseCreatingOrEditPost.isResult()) {
-      saveNewPostToBase(sessionId, postCreateOrEditRequest);
+    ResponseCreateUpdatePost responseCreateUpdatePost = validateCreateUpdatePost(
+        createUpdatePostRequest, sessionId);
+    if (responseCreateUpdatePost.isResult()) {
+      saveNewPostToBase(sessionId, createUpdatePostRequest);
     }
 
-    return responseCreatingOrEditPost;
+    return responseCreateUpdatePost;
   }
 
 
   public ResponsePost getModerationPost(int offset, int limit, String status, String sessionId) {
-    ResponsePost responsePost = new ResponsePost();
+
     Optional<Integer> userId = redisCache.findUserIdBySessionId(sessionId);
     if (userId.isEmpty()) {
       System.out.println("User not found");
-      return responsePost;
+      return new ResponsePost();
+    }
+    Page<Post> posts = Page.empty();
+    if (userRepository.isModerator(userId.get()) == 1) {
+      posts = status.equals("new") ?
+          postRepository.getPostForModeration(getPagination(offset, limit), status)
+          : postRepository.getModeratedPost(getPagination(offset, limit), userId.get(), status);
     }
 
-    Page<Post> posts;
-
-    if (status.equals("new")) {
-      posts = postRepository.getPostForModeration(getPagination(offset, limit), status);
-    } else {
-      posts = postRepository.getModeratedPost(getPagination(offset, limit), userId.get(), status);
-    }
     return makePostResponse(posts);
   }
 
@@ -342,61 +338,79 @@ public class PostService {
     return responseImageUpload;
   }
 
-  public ResponseCreatingOrEditPost getEditPost(int id, String sessionId,
-      PostCreateOrEditRequest postCreateOrEditRequest) {
-    ResponseCreatingOrEditPost responseCreatingOrEditPost = new ResponseCreatingOrEditPost();
+  public ResponseCreateUpdatePost getEditPost(int id, String sessionId,
+      CreateUpdatePostRequest createUpdatePostRequest) {
+    ResponseCreateUpdatePost responseCreateUpdatePost = new ResponseCreateUpdatePost();
     Optional<Post> post = postRepository.findById(id);
 
     if (post.isEmpty()) {
-      return responseCreatingOrEditPost;
+      return responseCreateUpdatePost;
     }
 
-    responseCreatingOrEditPost = validateCreatingOrEditPost(postCreateOrEditRequest, sessionId);
+    responseCreateUpdatePost = validateCreateUpdatePost(createUpdatePostRequest, sessionId);
 
-    if (responseCreatingOrEditPost.isResult()) {
+    if (responseCreateUpdatePost.isResult()) {
 
-      updatePostInBase(sessionId, postCreateOrEditRequest, post.get());
+      updatePostInBase(sessionId, createUpdatePostRequest, post.get());
     }
 
-    return responseCreatingOrEditPost;
+    return responseCreateUpdatePost;
   }
 
-  public ResponseCommentToPost addCommentToPost(CommentToPostRequest commentToPostRequest,
-      String sessionId) {
+  public ResponseResult getVotesForPost(String sessionId, PostVoteRequest postVoteRequest,
+      VoteType voteType) {
+    ResponseResult responseResult = new ResponseResult();
+    int postId = postVoteRequest.getPostId();
 
     User user = getUserFromSession(sessionId);
     if (user == null) {
       return null;
     }
-    ResponseCommentToPost responseCommentToPost = validateComment(commentToPostRequest);
 
-    if (responseCommentToPost.isResult()) {
-      Integer postId = commentToPostRequest.getPostId() == null ? null
-          : Integer.parseInt(commentToPostRequest.getPostId());
-      Integer parentPostCommentId = commentToPostRequest.getParentId() == null ? null
-          : Integer.parseInt(commentToPostRequest.getParentId());
-      Post post = postRepository.findById(postId).get();
-      String textComment = commentToPostRequest.getText();
-      PostComments postComments = commentService
-          .addingCommentToPost(post, parentPostCommentId, textComment, user);
-      responseCommentToPost.setId(postComments.getId());
+    int userId = user.getId();
+
+    Optional<PostVotes> revotePvOptional = VoteType.LIKE.equals(voteType) ? postVotesRepository
+        .findVotePostByUserId(postId, userId, VoteType.LIKE.getValue())
+        : postVotesRepository.findVotePostByUserId(postId, userId, VoteType.DISLIKE.getValue());
+
+    Optional<PostVotes> oppositePvOptional = VoteType.LIKE.equals(voteType) ? postVotesRepository
+        .findVotePostByUserId(postId, userId, VoteType.DISLIKE.getValue()) : postVotesRepository
+        .findVotePostByUserId(postId, userId, VoteType.LIKE.getValue());
+    Optional<Post> post = postRepository.findById(postId);
+
+    if (post.isPresent()) {
+      if (revotePvOptional.isPresent()) {
+        responseResult.setResult(false);
+        return responseResult;
+      }
+      if (oppositePvOptional.isPresent()) {
+        PostVotes oppositePv = oppositePvOptional.get();
+        oppositePv.setValue((byte) voteType.getValue());
+        oppositePv.setTime(Calendar.getInstance());
+        postVotesRepository.save(oppositePv);
+        responseResult.setResult(true);
+        return responseResult;
+      }
+      postVotesRepository.save(new PostVotes(user, post.get(), (byte) voteType.getValue()));
+      responseResult.setResult(true);
+      return responseResult;
     }
-    return responseCommentToPost;
+    return responseResult;
   }
 
-  private ResponseCreatingOrEditPost validateCreatingOrEditPost(
-      PostCreateOrEditRequest postCreateOrEditRequest,
+  private ResponseCreateUpdatePost validateCreateUpdatePost(
+      CreateUpdatePostRequest createUpdatePostRequest,
       String sessionId) {
 
-    ResponseCreatingOrEditPost responseCreatingOrEditPost = new ResponseCreatingOrEditPost();
+    ResponseCreateUpdatePost responseCreateUpdatePost = new ResponseCreateUpdatePost();
     PostCreatingErrorsResponse postCreatingErrorsResponse = new PostCreatingErrorsResponse();
     boolean isInputInfoRight = true;
 
-    if (postCreateOrEditRequest.getTitle().length() < 3) {
+    if (createUpdatePostRequest.getTitle().length() < 3) {
       postCreatingErrorsResponse.setTitle("Заголовок не установлен");
       isInputInfoRight = false;
     }
-    if (getTextWithoutHtml(postCreateOrEditRequest.getText()).length() < 50) {
+    if (TextHandler.getTextWithoutHtml(createUpdatePostRequest.getText()).length() < 50) {
       postCreatingErrorsResponse.setText("Текст публикации слишком короткий");
       isInputInfoRight = false;
     }
@@ -405,25 +419,25 @@ public class PostService {
       isInputInfoRight = false;
     }
 
-    responseCreatingOrEditPost.setResult(isInputInfoRight);
+    responseCreateUpdatePost.setResult(isInputInfoRight);
 
     if (!isInputInfoRight) {
-      responseCreatingOrEditPost.setErrors(postCreatingErrorsResponse);
+      responseCreateUpdatePost.setErrors(postCreatingErrorsResponse);
     }
 
-    return responseCreatingOrEditPost;
+    return responseCreateUpdatePost;
   }
 
 
   private void updatePostInBase(String sessionId,
-      PostCreateOrEditRequest postCreateOrEditRequest, Post post) {
-    Calendar timePost = postCreateOrEditRequest.getTimestamp();
+      CreateUpdatePostRequest createUpdatePostRequest, Post post) {
+    Calendar timePost = createUpdatePostRequest.getTimestamp();
     Calendar currentTime = Calendar.getInstance();
 
-    String title = postCreateOrEditRequest.getTitle();
-    String text = postCreateOrEditRequest.getText();
-    byte isActive = postCreateOrEditRequest.getActive();
-    ArrayList<String> tags = postCreateOrEditRequest.getTags();
+    String title = createUpdatePostRequest.getTitle();
+    String text = createUpdatePostRequest.getText();
+    byte isActive = createUpdatePostRequest.getActive();
+    ArrayList<String> tags = createUpdatePostRequest.getTags();
 
     User user = getUserFromSession(sessionId);
 
@@ -464,14 +478,14 @@ public class PostService {
   }
 
   private void saveNewPostToBase(String sessionId,
-      PostCreateOrEditRequest postCreateOrEditRequest) {
-    Calendar timePost = postCreateOrEditRequest.getTimestamp();
+      CreateUpdatePostRequest createUpdatePostRequest) {
+    Calendar timePost = createUpdatePostRequest.getTimestamp();
     Calendar currentTime = Calendar.getInstance();
 
-    String title = postCreateOrEditRequest.getTitle();
-    String text = postCreateOrEditRequest.getText();
-    byte isActive = postCreateOrEditRequest.getActive();
-    ArrayList<String> tags = postCreateOrEditRequest.getTags();
+    String title = createUpdatePostRequest.getTitle();
+    String text = createUpdatePostRequest.getText();
+    byte isActive = createUpdatePostRequest.getActive();
+    ArrayList<String> tags = createUpdatePostRequest.getTags();
 
     User user = getUserFromSession(sessionId);
 
@@ -519,8 +533,8 @@ public class PostService {
       postInfoResponse.setTimestamp(post.getTime().getTimeInMillis() / 1000);
       postInfoResponse.setUser(getUserInfoResponse(userId, UserInfoWithPhoto.NO));
       postInfoResponse.setTitle(post.getTitle());
-      postInfoResponse.setAnnounce(getTextWithoutHtml(post.getText()));
-      postInfoResponse.setLikeCount(postVotesRepository.getLikePost(post));
+      postInfoResponse.setAnnounce(TextHandler.getTextWithoutHtml(post.getText()));
+      postInfoResponse.setLikeCount(postVotesRepository.getCountLikePost(post));
       postInfoResponse.setDislikeCount(postVotesRepository.getDislikePost(post));
       postInfoResponse.setViewCount(post.getViewCount());
       postInfoResponse.setCommentCount(postCommentsRepository.getCommentCount(post));
@@ -540,7 +554,7 @@ public class PostService {
         .setUser(getUserInfoResponse(post.getUserId().getId(), UserInfoWithPhoto.NO));
     responsePostDetails.setTitle(post.getTitle());
     responsePostDetails.setText(post.getText());
-    responsePostDetails.setLikeCount(postVotesRepository.getLikePost(post));
+    responsePostDetails.setLikeCount(postVotesRepository.getCountLikePost(post));
     responsePostDetails.setDislikeCount(postVotesRepository.getDislikePost(post));
     responsePostDetails.setViewCount(post.getViewCount());
     responsePostDetails.setComments(getPostComments(post));
@@ -630,11 +644,6 @@ public class PostService {
     return responseImageUpload;
   }
 
-  private String getTextWithoutHtml(String text) {
-    Document doc = Jsoup.parseBodyFragment(text);
-    return doc.text();
-  }
-
   private User getUserFromSession(String sessionId) {
 
     Optional<Integer> userId = redisCache.findUserIdBySessionId(sessionId);
@@ -653,47 +662,7 @@ public class PostService {
     tagService.deleteAllTag2PostLinks(tag2PostList);
   }
 
-  private ResponseCommentToPost validateComment(CommentToPostRequest commentToPostRequest) {
-    ResponseCommentToPost responseCommentToPost = new ResponseCommentToPost();
-    CommentErrorsResponse commentErrorsResponse = new CommentErrorsResponse();
-    boolean isResult = true;
-    String textCommentWithoutHtml = getTextWithoutHtml(commentToPostRequest.getText());
-    Integer postId = commentToPostRequest.getPostId() == null ? null
-        : Integer.parseInt(commentToPostRequest.getPostId());
-    Integer parentPostCommentId = commentToPostRequest.getParentId() == null ? null
-        : Integer.parseInt(commentToPostRequest.getParentId());
-
-    if (postId == null) {
-      isResult = false;
-      responseCommentToPost.setResult(isResult);
-      return responseCommentToPost;
-    }
-    if (postRepository.findById(postId).isEmpty()) {
-      isResult = false;
-      responseCommentToPost.setResult(isResult);
-      return responseCommentToPost;
-    }
-    if (parentPostCommentId != null) {
-      if (postCommentsRepository.findById(parentPostCommentId).isEmpty()) {
-        isResult = false;
-        responseCommentToPost.setResult(isResult);
-        return responseCommentToPost;
-      }
-    }
-
-    if (textCommentWithoutHtml.length() < 2) {
-      isResult = false;
-      commentErrorsResponse.setText("Текст комментария не задан или слишком короткий");
-    }
-
-    if (!isResult) {
-      responseCommentToPost.setErrors(commentErrorsResponse);
-    }
-    responseCommentToPost.setResult(isResult);
-    return responseCommentToPost;
-  }
-
-  public int getCountPostsForModeration(){
+  public int getCountPostsForModeration() {
     return postRepository.getCountNewPostsForModeration();
   }
 

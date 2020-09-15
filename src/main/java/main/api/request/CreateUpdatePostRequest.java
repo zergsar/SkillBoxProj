@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-public class PostCreateOrEditRequest implements Serializable {
+public class CreateUpdatePostRequest implements Serializable {
 
   private Calendar timestamp;
   private byte active;

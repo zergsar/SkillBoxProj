@@ -22,5 +22,4 @@ public interface CaptchaCodesRepository extends CrudRepository<CaptchaCodes, Int
   void deleteAllOldCaptcha(@Param("timeout") int timeout);
 
 
-
 }

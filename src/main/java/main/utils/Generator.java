@@ -6,12 +6,23 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Random;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
+import main.model.repository.PostRepository;
 
 public class Generator {
+
+  private final PostRepository postRepository;
+
+  public Generator(PostRepository postRepository) {
+    this.postRepository = postRepository;
+  }
 
   public static String getRandomPathToImage(int lenChar, int countSubDir) {
     String randomString = generateRandomString(lenChar * countSubDir);
@@ -65,5 +76,24 @@ public class Generator {
 
     return imageString64;
   }
+
+  public static String generateHash(int lenRandomStr){
+    String randomString = generateRandomString(lenRandomStr);
+    byte[] bytesRandomString = randomString.getBytes(StandardCharsets.UTF_8);
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-1");
+      byte[] hashInBytes = md.digest(bytesRandomString);
+      StringBuilder sb = new StringBuilder();
+      for (byte hib : hashInBytes) {
+        sb.append(String.format("%02x", hib));
+      }
+      return sb.toString();
+    } catch (NoSuchAlgorithmException e) {
+      e.printStackTrace();
+    }
+
+    return null;
+  }
+
 
 }

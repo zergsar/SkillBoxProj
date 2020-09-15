@@ -1,6 +1,6 @@
 package main.api.response.post;
 
-public class ResponseCreatingOrEditPost {
+public class ResponseCreateUpdatePost {
 
   private boolean result;
   private PostCreatingErrorsResponse errors;

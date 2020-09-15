@@ -39,11 +39,11 @@ public class PostComments {
   @Column(columnDefinition = "TEXT NOT NULL", name = "text")
   private String text;
 
-  public PostComments(){
+  public PostComments() {
 
   }
 
-  public PostComments(String text, Post postId, PostComments parentId, User userId){
+  public PostComments(String text, Post postId, PostComments parentId, User userId) {
     this.text = text;
     this.postId = postId;
     this.parentId = parentId;
@@ -51,7 +51,7 @@ public class PostComments {
     this.time = Calendar.getInstance();
   }
 
-  public PostComments(String text, Post postId, User userId){
+  public PostComments(String text, Post postId, User userId) {
     this.text = text;
     this.postId = postId;
     this.userId = userId;

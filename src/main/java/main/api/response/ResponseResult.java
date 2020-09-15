@@ -1,4 +1,4 @@
-package main.api.response.post;
+package main.api.response;
 
 public class ResponseResult {
 

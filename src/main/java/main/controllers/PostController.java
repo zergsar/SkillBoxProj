@@ -3,15 +3,18 @@ package main.controllers;
 import javax.servlet.http.HttpSession;
 import main.api.request.CommentToPostRequest;
 import main.api.request.DecisionToPostRequest;
-import main.api.request.PostCreateOrEditRequest;
+import main.api.request.CreateUpdatePostRequest;
+import main.api.request.PostVoteRequest;
 import main.api.response.comment.ResponseCommentToPost;
-import main.api.response.post.ResponseCreatingOrEditPost;
+import main.api.response.post.ResponseCreateUpdatePost;
 import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
 import main.api.response.post.ResponsePostDetails;
-import main.api.response.post.ResponseResult;
+import main.api.response.ResponseResult;
 import main.api.response.tag.ResponseTags;
+import main.model.enums.VoteType;
+import main.service.CommentService;
 import main.service.PostService;
 import main.service.TagService;
 import org.springframework.http.HttpStatus;
@@ -31,10 +34,13 @@ public class PostController {
 
   private final PostService postService;
   private final TagService tagService;
+  private final CommentService commentService;
 
-  public PostController(PostService postService, TagService tagService) {
+  public PostController(PostService postService, TagService tagService,
+      CommentService commentService) {
     this.postService = postService;
     this.tagService = tagService;
+    this.commentService = commentService;
   }
 
   @GetMapping("/api/post")
@@ -119,10 +125,10 @@ public class PostController {
 
   @PostMapping("/api/post")
   @Transactional
-  public ResponseEntity<ResponseCreatingOrEditPost> createPost(HttpSession httpSession,
-      @RequestBody PostCreateOrEditRequest postCreateOrEditRequest) {
+  public ResponseEntity<ResponseCreateUpdatePost> createPost(HttpSession httpSession,
+      @RequestBody CreateUpdatePostRequest createUpdatePostRequest) {
     String sessionId = httpSession.getId();
-    return new ResponseEntity<>(postService.createNewPost(sessionId, postCreateOrEditRequest),
+    return new ResponseEntity<>(postService.createNewPost(sessionId, createUpdatePostRequest),
         HttpStatus.OK);
   }
 
@@ -138,10 +144,10 @@ public class PostController {
 
   @PutMapping("api/post/{id}")
   @Transactional
-  public ResponseEntity<ResponseCreatingOrEditPost> editPost(@PathVariable int id,
-      HttpSession httpSession, @RequestBody PostCreateOrEditRequest postCreateOrEditRequest) {
+  public ResponseEntity<ResponseCreateUpdatePost> editPost(@PathVariable int id,
+      HttpSession httpSession, @RequestBody CreateUpdatePostRequest createUpdatePostRequest) {
     String sessionId = httpSession.getId();
-    return new ResponseEntity<>(postService.getEditPost(id, sessionId, postCreateOrEditRequest),
+    return new ResponseEntity<>(postService.getEditPost(id, sessionId, createUpdatePostRequest),
         HttpStatus.OK);
   }
 
@@ -150,7 +156,7 @@ public class PostController {
   public ResponseEntity<ResponseCommentToPost> commentPost(
       @RequestBody CommentToPostRequest commentToPostRequest, HttpSession httpSession) {
     String sessionId = httpSession.getId();
-    ResponseCommentToPost responseCommentToPost = postService
+    ResponseCommentToPost responseCommentToPost = commentService
         .addCommentToPost(commentToPostRequest, sessionId);
     if (responseCommentToPost == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
@@ -164,8 +170,33 @@ public class PostController {
   @GetMapping("/api/tag")
   @Transactional(readOnly = true)
   public ResponseEntity<ResponseTags> tagsWeight(
-      @RequestParam(name = "query", required = false, defaultValue = "") String query){
+      @RequestParam(name = "query", required = false, defaultValue = "") String query) {
     return new ResponseEntity<>(tagService.getTagsAndWeights(query), HttpStatus.OK);
+  }
+
+  @PostMapping("/api/post/like")
+  @Transactional
+  public ResponseEntity<ResponseResult> likePost(HttpSession httpSession, @RequestBody
+      PostVoteRequest postVoteRequest) {
+    String sessionId = httpSession.getId();
+    ResponseResult rr = postService.getVotesForPost(sessionId, postVoteRequest, VoteType.LIKE);
+    if (rr == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+    }
+    return new ResponseEntity<>(rr, HttpStatus.OK);
+  }
+
+
+  @PostMapping("/api/post/dislike")
+  @Transactional
+  public ResponseEntity<ResponseResult> dislikePost(HttpSession httpSession, @RequestBody
+      PostVoteRequest postVoteRequest) {
+    String sessionId = httpSession.getId();
+    ResponseResult rr = postService.getVotesForPost(sessionId, postVoteRequest, VoteType.DISLIKE);
+    if (rr == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+    }
+    return new ResponseEntity<>(rr, HttpStatus.OK);
   }
 
 

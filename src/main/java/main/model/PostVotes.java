@@ -35,6 +35,17 @@ public class PostVotes {
   private byte value;
 
 
+  public PostVotes(){}
+
+  public PostVotes(User userId, Post postId, byte value){
+
+    this.userId = userId;
+    this.postId = postId;
+    this.value = value;
+    this.time = Calendar.getInstance();
+
+  }
+
   public int getId() {
     return id;
   }

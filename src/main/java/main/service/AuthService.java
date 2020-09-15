@@ -1,38 +1,43 @@
 package main.service;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import main.api.request.EditProfileRequest;
 import main.api.request.LoginRequest;
 import main.api.request.RegistrationRequest;
+import main.api.request.RestorePassRequest;
+import main.api.response.ResponseResult;
 import main.api.response.auth.AuthErrorsInfoResponse;
 import main.api.response.auth.AuthUserInfoResponse;
 import main.api.response.auth.ResponseAuth;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.repository.UserRepository;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import main.utils.Generator;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AuthService implements UserDetailsService {
+public class AuthService {
 
   private final UserRepository userRepository;
   private final CaptchaService captchaService;
   private final RedisCache redisCache;
   private final PostService postService;
+  private final MailSender mailSender;
 
   public AuthService(UserRepository userRepository, CaptchaService captchaService,
-      RedisCache redisCache, PostService postService) {
+      RedisCache redisCache, PostService postService, MailSender mailSender) {
     this.userRepository = userRepository;
     this.captchaService = captchaService;
     this.redisCache = redisCache;
     this.postService = postService;
+    this.mailSender = mailSender;
   }
 
   private ResponseAuth verifyInfoNewUser(RegistrationRequest user) {
@@ -145,7 +150,7 @@ public class AuthService implements UserDetailsService {
     return responseAuth;
   }
 
-  private boolean isModerator(int id) {
+  public boolean isModerator(int id) {
     Optional<User> user = userRepository.findById(id);
     if (user.isEmpty()) {
       throw new RuntimeException("User not found");
@@ -164,17 +169,40 @@ public class AuthService implements UserDetailsService {
   public ResponseAuth isActiveSession(String sessionId) {
     ResponseAuth responseAuth = new ResponseAuth();
     boolean isLogin = false;
-
     if (redisCache.isCacheSession(sessionId)) {
       int id = redisCache.findUserIdBySessionId(sessionId).get();
       responseAuth.setUser(getUserInfo(id));
       isLogin = true;
     }
-
     responseAuth.setResult(isLogin);
-
     return responseAuth;
+  }
 
+  public ResponseResult getRestoreLink(RestorePassRequest restorePassRequest,
+      HttpServletRequest request) {
+    ResponseResult rr = new ResponseResult();
+    String email = restorePassRequest.getEmail();
+    String subj = "SkillBlog: Ссылка для восстановления пароля";
+    if (isExistEmail(email)) {
+      User user = getUserFromEmail(email);
+      if (user != null) {
+        try {
+          URL url = new URL(request.getRequestURL().toString());
+          String host = url.getProtocol() + "://" + url.getHost() + ":" + url.getPort();
+          String hash = Generator.generateHash(10);
+          String textEmail = host + "/login/change-password/" + hash;
+          user.setCode(hash);
+          userRepository.save(user);
+          mailSender.sendMail(email, subj, textEmail);
+          rr.setResult(true);
+          return rr;
+        } catch (MalformedURLException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+    rr.setResult(false);
+    return rr;
   }
 
   private AuthUserInfoResponse getUserInfo(int id) {
@@ -191,7 +219,7 @@ public class AuthService implements UserDetailsService {
     String name = user.getName();
     String email = user.getEmail();
     String photo = user.getPhoto();
-    int modCount = 0;                                                       //пока нет инфы о кол. постов поэтому 0
+    int modCount = 0;
 
     boolean isModerator = user.isModerator() == 1;
     boolean settings = isModerator;
@@ -228,8 +256,8 @@ public class AuthService implements UserDetailsService {
 
       HashMap<String, Object> fields = editProfileRequest.getProfileFieldsMap();
 
-      System.out.println("!!! EMAIL" + editProfileRequest.getEmail());
-      System.out.println("!!! NAME" + editProfileRequest.getName());
+      System.out.println("!!! EMAIL " + editProfileRequest.getEmail());
+      System.out.println("!!! NAME " + editProfileRequest.getName());
 
       for (String field : fields.keySet()) {
         System.out.println(field + " " + fields.get(field));
@@ -239,15 +267,11 @@ public class AuthService implements UserDetailsService {
     return responseAuth;
   }
 
-
-  @Override
-  public UserDetails loadUserByUsername(String name) throws UsernameNotFoundException {
-    Optional<User> user = userRepository.findByName(name);
-
+  private User getUserFromEmail(String email) {
+    Optional<User> user = userRepository.findByEmail(email);
     if (user.isEmpty()) {
-      throw new UsernameNotFoundException("User not found");
+      return null;
     }
-
     return user.get();
   }
 
