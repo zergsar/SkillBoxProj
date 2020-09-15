@@ -28,7 +28,7 @@ public class RedisCache {
 
   private void init() {
     Config config = new Config();
-    config.useSingleServer()
+    config.useSingleServer().setUsername("h").setPassword("p0a1805a79d9f6dae64b32265792aff24adddd7375fb85698280b03a29710fca5")
         .setAddress("redis://" + redisConfig.getHost() + ":" + redisConfig.getPort());
     try {
       redisson = Redisson.create(config);
