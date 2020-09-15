@@ -7,8 +7,8 @@ copyright: Тимиров Сергей
 copyrightFrom: 2020
 
 #Redis configuration
-redis.host: 127.0.0.1
-redis.port: 6379
+redis.host: ${REDISDB_HOST:127.0.0.1}
+redis.port: ${REDISDB_PORT:6379}
 
 #MySQL configuration
 spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://localhost:3307/blogdb?serverTimezone=UTC}
