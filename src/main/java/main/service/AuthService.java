@@ -189,7 +189,7 @@ public class AuthService {
         try {
           URL url = new URL(request.getRequestURL().toString());
           String host =
-              url.getProtocol() + "://" + url.getHost() + (url.getPort() != 0 ? ":" + url.getPort()
+              url.getProtocol() + "://" + url.getHost() + (url.getPort() != -1 ? ":" + url.getPort()
                   : "");
           String hash = Generator.generateHash(10);
           String link = host + "/login/change-password/" + hash;
