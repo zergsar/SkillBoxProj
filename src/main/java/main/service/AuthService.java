@@ -188,9 +188,12 @@ public class AuthService {
       if (user != null) {
         try {
           URL url = new URL(request.getRequestURL().toString());
-          String host = url.getProtocol() + "://" + url.getHost() + ":" + url.getPort();
+          String host =
+              url.getProtocol() + "://" + url.getHost() + (url.getPort() != 0 ? ":" + url.getPort()
+                  : "");
           String hash = Generator.generateHash(10);
-          String textEmail = host + "/login/change-password/" + hash;
+          String link = host + "/login/change-password/" + hash;
+          String textEmail = "Link for restore password: <a href=\"" + link + "\">" + link + "</a>";
           user.setCode(hash);
           userRepository.save(user);
           mailSender.sendMail(email, subj, textEmail);

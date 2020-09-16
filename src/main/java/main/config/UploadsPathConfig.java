@@ -1,11 +1,18 @@
 package main.config;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.multipart.MultipartResolver;
+import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 @Configuration
-public class UploadsConfig extends WebMvcConfigurationSupport {
+public class UploadsPathConfig extends WebMvcConfigurationSupport {
+
+//  @Value("${default.upload.dir}")
+//  private String defaultUploadDir;
 
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -21,4 +28,7 @@ public class UploadsConfig extends WebMvcConfigurationSupport {
     registry.addResourceHandler("/upload/**")
         .addResourceLocations("/upload/");
   }
+
+
+
 }

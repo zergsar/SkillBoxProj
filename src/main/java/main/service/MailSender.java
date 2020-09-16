@@ -1,8 +1,13 @@
 package main.service;
 
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.http.HttpProperties.Encoding;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.util.EncodingUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,14 +23,19 @@ public class MailSender {
   }
 
   public void sendMail(String emailTo, String subj, String message){
-    SimpleMailMessage mailMessage = new SimpleMailMessage();
+    try {
+      MimeMessage mimeMessage = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
+      mimeMessage.setContent(message, "text/html");
+      helper.setTo(emailTo);
+      helper.setSubject(subj);
+      helper.setFrom(username);
 
-    mailMessage.setFrom(username);
-    mailMessage.setTo(emailTo);
-    mailMessage.setSubject(subj);
-    mailMessage.setText(message);
+      mailSender.send(mimeMessage);
 
-    mailSender.send(mailMessage);
+    } catch (MessagingException e) {
+      e.printStackTrace();
+    }
   }
 
 

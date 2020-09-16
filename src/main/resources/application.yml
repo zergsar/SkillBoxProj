@@ -34,7 +34,7 @@ subdir.name.length: 3
 subdir.depth: 3
 
 #Default directories for upload images
-default.upload.dir: ./src/main/webapp/upload/
+default.upload.dir: src/main/webapp/upload/
 
 #Size upload image (Mb)
 image.upload.max.size: 5

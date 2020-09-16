@@ -101,6 +101,9 @@ public class AuthController {
       @RequestBody RestorePassRequest restorePassRequest, HttpServletRequest request) {
     return new ResponseEntity<>(authService.getRestoreLink(restorePassRequest, request), HttpStatus.OK);
   }
-
+//
+//  @PostMapping("/api/auth/password")
+//  @Transactional
+//  public ResponseEntity
 
 }
