@@ -5,10 +5,12 @@ import javax.servlet.http.HttpSession;
 import main.api.request.EditProfileRequest;
 import main.api.request.LoginRequest;
 import main.api.request.RegistrationRequest;
+import main.api.request.RestorePassLinkRequest;
 import main.api.request.RestorePassRequest;
 import main.api.response.ResponseResult;
 import main.api.response.auth.ResponseAuth;
 import main.api.response.captcha.CaptchaInfoResponse;
+import main.api.response.passsword.ResponsePassword;
 import main.service.AuthService;
 import main.service.CaptchaService;
 import org.springframework.http.HttpStatus;
@@ -97,13 +99,17 @@ public class AuthController {
 
   @PostMapping("/api/auth/restore")
   @Transactional
-  public ResponseEntity<ResponseResult> restoreRequest(
-      @RequestBody RestorePassRequest restorePassRequest, HttpServletRequest request) {
-    return new ResponseEntity<>(authService.getRestoreLink(restorePassRequest, request), HttpStatus.OK);
+  public ResponseEntity<ResponseResult> restorePasswordLink(
+      @RequestBody RestorePassLinkRequest restorePassLinkRequest, HttpServletRequest request) {
+    return new ResponseEntity<>(authService.getRestoreLink(restorePassLinkRequest, request),
+        HttpStatus.OK);
   }
-//
-//  @PostMapping("/api/auth/password")
-//  @Transactional
-//  public ResponseEntity
+
+  @PostMapping("/api/auth/password")
+  @Transactional
+  public ResponseEntity<ResponsePassword> restorePasswordRequest(
+      @RequestBody RestorePassRequest restorePassRequest) {
+    return new ResponseEntity<>(authService.restorePass(restorePassRequest), HttpStatus.OK);
+  }
 
 }

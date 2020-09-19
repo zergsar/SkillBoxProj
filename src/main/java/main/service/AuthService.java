@@ -10,11 +10,14 @@ import javax.servlet.http.HttpSession;
 import main.api.request.EditProfileRequest;
 import main.api.request.LoginRequest;
 import main.api.request.RegistrationRequest;
+import main.api.request.RestorePassLinkRequest;
 import main.api.request.RestorePassRequest;
 import main.api.response.ResponseResult;
 import main.api.response.auth.AuthErrorsInfoResponse;
 import main.api.response.auth.AuthUserInfoResponse;
 import main.api.response.auth.ResponseAuth;
+import main.api.response.passsword.PasswordErrorsResponse;
+import main.api.response.passsword.ResponsePassword;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.repository.UserRepository;
@@ -178,10 +181,10 @@ public class AuthService {
     return responseAuth;
   }
 
-  public ResponseResult getRestoreLink(RestorePassRequest restorePassRequest,
+  public ResponseResult getRestoreLink(RestorePassLinkRequest restorePassLinkRequest,
       HttpServletRequest request) {
     ResponseResult rr = new ResponseResult();
-    String email = restorePassRequest.getEmail();
+    String email = restorePassLinkRequest.getEmail();
     String subj = "SkillBlog: Ссылка для восстановления пароля";
     if (isExistEmail(email)) {
       User user = getUserFromEmail(email);
@@ -206,6 +209,50 @@ public class AuthService {
     }
     rr.setResult(false);
     return rr;
+  }
+
+  public ResponsePassword restorePass(RestorePassRequest restorePassRequest) {
+    ResponsePassword rp = validateRestorePassRequest(restorePassRequest);
+    if(rp.isResult()){
+      String code = restorePassRequest.getCode();
+      Optional<User> userOpt = userRepository.findByCode(code);
+      if(userOpt.isPresent()){
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+        String pass = restorePassRequest.getPassword();
+        User user = userOpt.get();
+        user.setCode(null);
+        user.setPassword(bCryptPasswordEncoder.encode(pass));
+        userRepository.save(user);
+      }
+    }
+    return rp;
+  }
+
+  private ResponsePassword validateRestorePassRequest(RestorePassRequest restorePassRequest) {
+    boolean result = true;
+    PasswordErrorsResponse per = new PasswordErrorsResponse();
+    ResponsePassword rp = new ResponsePassword();
+    String code = restorePassRequest.getCode();
+    String captcha = restorePassRequest.getCaptcha();
+    String captchaSecret = restorePassRequest.getCaptchaSecret();
+    String pass = restorePassRequest.getPassword();
+
+    if (userRepository.findByCode(code).isEmpty()) {
+      result = false;
+      per.setCode(
+          "Ссылка для восстановления пароля устарела. <a href=\"/login/restore-password\">Запросить ссылку снова</a>");
+    }
+    if (!isRightCaptcha(captcha, captchaSecret)) {
+      result = false;
+      per.setCaptcha("Код с картинки введен неверно");
+    }
+    if(!isLenCondPass(pass)){
+      result = false;
+      per.setCaptcha("Пароль короче 6 символов");
+    }
+    rp.setResult(result);
+    rp.setErrors(per);
+    return rp;
   }
 
   private AuthUserInfoResponse getUserInfo(int id) {

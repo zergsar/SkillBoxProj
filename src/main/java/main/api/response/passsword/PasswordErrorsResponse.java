@@ -1,14 +1,15 @@
-package main.api.request;
+package main.api.response.passsword;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.io.Serializable;
 
-public class RestorePassRequest {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class PasswordErrorsResponse implements Serializable {
 
   private String code;
   private String password;
   private String captcha;
-  @JsonProperty("captcha_secret")
-  private String captchaSecret;
+
 
   public String getCode() {
     return code;
@@ -32,13 +33,5 @@ public class RestorePassRequest {
 
   public void setCaptcha(String captcha) {
     this.captcha = captcha;
-  }
-
-  public String getCaptchaSecret() {
-    return captchaSecret;
-  }
-
-  public void setCaptchaSecret(String captchaSecret) {
-    this.captchaSecret = captchaSecret;
   }
 }
