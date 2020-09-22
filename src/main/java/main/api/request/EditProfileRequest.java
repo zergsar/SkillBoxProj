@@ -10,8 +10,8 @@ public class EditProfileRequest implements Serializable {
   private String email;
   private String name;
   private String password;
-  private MultipartFile photo;
-  private Integer removePhoto;
+  private String removePhoto;
+//  private MultipartFile photo;
 
 
   public String getEmail() {
@@ -38,52 +38,19 @@ public class EditProfileRequest implements Serializable {
     this.password = password;
   }
 
-  public MultipartFile getPhoto() {
-    return photo;
-  }
+//  public MultipartFile getPhoto() {
+//    return photo;
+//  }
+//
+//  public void setPhoto(MultipartFile photo) {
+//    this.photo = photo;
+//  }
 
-  public void setPhoto(MultipartFile photo) {
-    this.photo = photo;
-  }
-
-  public Integer getRemovePhoto() {
+  public String getRemovePhoto() {
     return removePhoto;
   }
 
-  public void setRemovePhoto(Integer removePhoto) {
+  public void setRemovePhoto(String removePhoto) {
     this.removePhoto = removePhoto;
-  }
-
-  public HashMap<String, Object> getProfileFieldsMap() {
-    HashMap<String, Object> fields = new HashMap<>();
-
-//    fields.put("email", this.email == null ? "" : this.email);
-//    fields.put("name", this.name == null ? "" : this.name);
-//    fields.put("password", this.password == null ? "" : this.password);
-//    fields.put("photo", this.photo == null ? "" : this.photo);
-//    fields.put("removePhoto", this.removePhoto == null ? "" : this.removePhoto);
-
-    fields.put("email", this.email);
-    fields.put("name", this.name);
-    fields.put("password", this.password);
-    fields.put("photo", this.photo);
-    fields.put("removePhoto", this.removePhoto);
-
-    Iterator iterKey = fields.keySet().iterator();
-
-    while (iterKey.hasNext()) {
-      String val = iterKey.next().toString();
-      if (val == null) {
-        iterKey.remove();
-      }
-    }
-
-//    for (String key : fields.keySet()) {
-//      if (fields.get(key) == null) {
-//        fields.remove(key);
-//      }
-//    }
-
-    return fields;
   }
 }

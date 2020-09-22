@@ -3,6 +3,7 @@
 *.iml
 *.xml
 out
+./src/main/webapp/upload
 target
 =======
 target

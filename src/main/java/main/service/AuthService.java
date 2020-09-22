@@ -1,12 +1,16 @@
 package main.service;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.MultiPixelPackedSampleModel;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Optional;
+import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import main.api.request.EditProfileRequest;
 import main.api.request.LoginRequest;
 import main.api.request.RegistrationRequest;
@@ -18,12 +22,18 @@ import main.api.response.auth.AuthUserInfoResponse;
 import main.api.response.auth.ResponseAuth;
 import main.api.response.passsword.PasswordErrorsResponse;
 import main.api.response.passsword.ResponsePassword;
+import main.api.response.profile.ResponseUpdateProfile;
+import main.api.response.profile.UpdateProfilesErrorsResponse;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.repository.UserRepository;
+import main.utils.FileUtils;
 import main.utils.Generator;
+import main.utils.ImageUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AuthService {
@@ -33,6 +43,21 @@ public class AuthService {
   private final RedisCache redisCache;
   private final PostService postService;
   private final MailSender mailSender;
+
+  @Value("${image.upload.max.size}")
+  private int maxSizeFileMb;
+  @Value("${subdir.name.length}")
+  private int subdirNameLength;
+  @Value("${subdir.depth}")
+  private int subdirDepth;
+  @Value("${default.upload.dir}")
+  private String defaultUploadDir;
+  @Value("${default.upload.temp.dir}")
+  private String defaultUploadTempDir;
+  @Value("${profile.photo.height}")
+  private int maxProfilePhotoHeight;
+  @Value("${profile.photo.width}")
+  private int maxProfilePhotoWidth;
 
   public AuthService(UserRepository userRepository, CaptchaService captchaService,
       RedisCache redisCache, PostService postService, MailSender mailSender) {
@@ -76,7 +101,7 @@ public class AuthService {
 
   }
 
-  public ResponseAuth saveNewUserToBase(RegistrationRequest user) {
+  public ResponseAuth saveUpdateUserToBase(RegistrationRequest user) {
     BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
     String email = user.getEmail();
     String name = user.getName();
@@ -91,33 +116,28 @@ public class AuthService {
     }
 
     return responseAuth;
-
   }
 
   private boolean isExistEmail(String email) {
     boolean isExist = false;
-
-    if (userRepository.findByEmail(email).isPresent()) {
+    if (email != null && userRepository.findByEmail(email).isPresent()) {
       isExist = true;
     }
-
     return isExist;
   }
 
   private boolean isNameNotNull(String name) {
     boolean isNotNull = false;
-
-    if (name.length() > 0) {
+    if (name != null && name.length() > 0) {
       isNotNull = true;
     }
-
     return isNotNull;
   }
 
   private boolean isLenCondPass(String password) {
     boolean isLenCondPass = false;
 
-    if (password.length() >= 6) {
+    if (password != null && password.length() >= 6) {
       isLenCondPass = true;
     }
 
@@ -172,8 +192,9 @@ public class AuthService {
   public ResponseAuth isActiveSession(String sessionId) {
     ResponseAuth responseAuth = new ResponseAuth();
     boolean isLogin = false;
-    if (redisCache.isCacheSession(sessionId)) {
-      int id = redisCache.findUserIdBySessionId(sessionId).get();
+    Optional<Integer> optId = redisCache.findUserIdBySessionId(sessionId);
+    if (optId.isPresent()) {
+      int id = optId.get();
       responseAuth.setUser(getUserInfo(id));
       isLogin = true;
     }
@@ -213,10 +234,10 @@ public class AuthService {
 
   public ResponsePassword restorePass(RestorePassRequest restorePassRequest) {
     ResponsePassword rp = validateRestorePassRequest(restorePassRequest);
-    if(rp.isResult()){
+    if (rp.isResult()) {
       String code = restorePassRequest.getCode();
       Optional<User> userOpt = userRepository.findByCode(code);
-      if(userOpt.isPresent()){
+      if (userOpt.isPresent()) {
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         String pass = restorePassRequest.getPassword();
         User user = userOpt.get();
@@ -246,7 +267,7 @@ public class AuthService {
       result = false;
       per.setCaptcha("Код с картинки введен неверно");
     }
-    if(!isLenCondPass(pass)){
+    if (!isLenCondPass(pass)) {
       result = false;
       per.setCaptcha("Пароль короче 6 символов");
     }
@@ -289,32 +310,56 @@ public class AuthService {
     return authUserInfoResponse;
   }
 
+  public ResponseUpdateProfile updateProfile(String sessionId,
+      EditProfileRequest editProfileRequest, MultipartFile photo) {
+    ResponseUpdateProfile rup = validateProfileUpdates(sessionId, editProfileRequest, photo);
 
-  public ResponseAuth profileSetup(HttpSession httpSession, EditProfileRequest editProfileRequest) {
-    ResponseAuth responseAuth = new ResponseAuth();
-    AuthErrorsInfoResponse authErrorsInfoResponse = new AuthErrorsInfoResponse();
-    String sessionId = httpSession.getId();
-
-    boolean isActive = isActiveSession(sessionId).getResult();
-    boolean isErrors = false;
-
-    if (isActive) {
-      int id = redisCache.findUserIdBySessionId(sessionId).get();
-      User user = userRepository.findById(id).get();
+    if (rup.isResult()) {
+      User user = getUserFromSessionID(sessionId);
       String email = editProfileRequest.getEmail();
       String name = editProfileRequest.getName();
+      String pass = editProfileRequest.getPassword();
+//      MultipartFile photo = editProfileRequest.getPhoto();
+      String removePhoto = editProfileRequest.getRemovePhoto();
+      boolean changeEmail = !email.equals(user.getEmail());
+      boolean changeName = !name.equals(user.getName());
+      boolean changePass = !(pass == null || pass.isBlank());
+      boolean isRemovePhoto = removePhoto != null && removePhoto.equals("1");
 
-      HashMap<String, Object> fields = editProfileRequest.getProfileFieldsMap();
-
-      System.out.println("!!! EMAIL " + editProfileRequest.getEmail());
-      System.out.println("!!! NAME " + editProfileRequest.getName());
-
-      for (String field : fields.keySet()) {
-        System.out.println(field + " " + fields.get(field));
-
+      if (changeEmail) {
+        user.setEmail(email);
       }
+      if (changeName) {
+        user.setName(name);
+      }
+      if (changePass) {
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+        user.setPassword(bCryptPasswordEncoder.encode(pass));
+      }
+      if (isRemovePhoto) {
+        user.setPhoto(null);
+      }
+      if(photo != null && FileUtils.isMpfFileNotNull(photo)) {
+        try {
+          BufferedImage bi = ImageIO.read(photo.getInputStream());
+          int width = bi.getWidth();
+          int height = bi.getHeight();
+
+          if(width <= maxProfilePhotoWidth && height <= maxProfilePhotoHeight)
+          {
+
+          }
+          String tempPath = (defaultUploadTempDir.endsWith("/") ? defaultUploadTempDir : defaultUploadTempDir + "/") + photo.getOriginalFilename();
+          File scaleFile = new File(tempPath);
+          ImageIO.write(bi, "png", scaleFile);
+          user.setPhoto(FileUtils.uploadFile(defaultUploadDir, subdirNameLength, subdirDepth, photo));
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+      userRepository.save(user);
     }
-    return responseAuth;
+    return rup;
   }
 
   private User getUserFromEmail(String email) {
@@ -325,63 +370,59 @@ public class AuthService {
     return user.get();
   }
 
-//  public void userValidation() {
-//
-//    if (!user.getEmail().equals(email) || isExistEmail(email)) {
-//      user.setEmail(email);
-//    }
-//    if (!user.getName().equals(name)) {
-//      user.setName(name);
-//    }
-//
-//    for (String param : editProfileRequest.keySet()) {
-//      String value = jsonObject.get(param).toString();
-//
-//      switch (param) {
-//        case "name":
-//          if (isNameNotNull(value)) {
-//            user.setName(value);
-//          } else {
-//            responseAuth.put(param, "Имя указано неверно");
-//            isErrors = true;
-//          }
-//          break;
-//
-//        case "email":
-//          if (isExistEmail(value)) {
-//            user.setEmail(value);
-//          } else {
-//            responseAuth.put(param, "Этот e-mail уже зарегистрирован");
-//            isErrors = true;
-//          }
-//          break;
-//
-//        case "photo":
-//          try {
-//            if (!photo.isEmpty()) {
-//
-//              long fileSize = photo.getSize();
-//              byte[] allBytes = photo.getBytes();
-//
-//              System.out.println("Размер файла: " + fileSize);
-//
-//              System.out.println(allBytes[54]);
-//            }
-//
-//
-//          } catch (IOException e) {
-//            e.printStackTrace();
-//          }
-//
-//      }
-//    }
-//  }
-//        else
-//
-//  {
-//    responseAuth.put("result", "unauthorized");
-//  }
-//}
+  private ResponseUpdateProfile validateProfileUpdates(String sessionId,
+      EditProfileRequest editProfileRequest, MultipartFile photo) {
+    ResponseUpdateProfile rup = new ResponseUpdateProfile();
+    UpdateProfilesErrorsResponse uper = new UpdateProfilesErrorsResponse();
+    boolean result = true;
+    User user = getUserFromSessionID(sessionId);
+    if (user == null) {
+      System.out.println("Пользователь не найден");
+      result = false;
+    }
 
+//    MultipartFile photo = editProfileRequest.getPhoto();
+    String email = editProfileRequest.getEmail();
+    String name = editProfileRequest.getName();
+    String pass = editProfileRequest.getPassword();
+    boolean changeEmail = !email.equals(user.getEmail());
+    boolean changeName = !name.equals(user.getName());
+    boolean changePass = !(pass == null || pass.isBlank());
+    boolean isExistPhoto = photo != null && FileUtils.isMpfFileNotNull(photo);
 
+    if (changePass && !isLenCondPass(pass)) {
+      uper.setPassword("Пароль короче 6-ти символов");
+      result = false;
+    }
+    if (changeEmail && isExistEmail(email)) {
+      uper.setEmail("Этот e-mail уже зарегистрирован или введен неверно");
+      result = false;
+    }
+    if (changeName && !isNameNotNull(name)) {
+      uper.setName("Имя указано неверно");
+      result = false;
+    }
+
+    if (isExistPhoto && !FileUtils.isValidMpfFileSize(photo, maxSizeFileMb)) {
+      uper.setPhoto("Фото слишком большое, нужно не более " + maxSizeFileMb + " Мб");
+      result = false;
+    }
+
+    rup.setResult(result);
+    rup.setErrors(uper);
+    return rup;
+  }
+
+  private User getUserFromSessionID(String sessionId) {
+    boolean isActiveSession = redisCache.isCacheSession(sessionId);
+    Optional<Integer> optId = redisCache.findUserIdBySessionId(sessionId);
+    if (isActiveSession && optId.isPresent()) {
+      int id = optId.get();
+      Optional<User> userOpt = userRepository.findById(id);
+      if (userOpt.isPresent()) {
+        return userOpt.get();
+      }
+    }
+    return null;
+  }
 }

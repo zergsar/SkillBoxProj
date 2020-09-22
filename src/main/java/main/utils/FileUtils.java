@@ -4,23 +4,46 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Objects;
 import org.springframework.web.multipart.MultipartFile;
 
 public class FileUtils {
 
-  public static boolean isFileSizeLessThan5Mb(String str) {
-    boolean result = false;
-    File file = new File(str);
+  public static boolean isValidImageFileFormat(MultipartFile mpf) {
+    String contentType = mpf.getContentType();
+    String jpgType = "image/jpeg";
+    String pngType = "image/png";
+    return Objects.requireNonNull(contentType).equals(jpgType) || contentType.equals(pngType);
+  }
 
-    if (file.exists()) {
-      double fileSize = (double) file.length() / (1024 * 1024);
-      result = fileSize <= 5;
+  public static boolean isValidMpfFileSize(MultipartFile mpf, int maxSizeMb) {
+    boolean result = true;
+    if (mpf.getSize() / 1000000 > maxSizeMb) {
+      result = false;
     }
-
     return result;
   }
 
-  public static String uploadFileToSubDir(String subDirNames, MultipartFile image) {
+  public static boolean isMpfFileNotNull(MultipartFile mpf) {
+    boolean result = true;
+    if (mpf.isEmpty() || mpf.getSize() == 0) {
+      result = false;
+    }
+    return result;
+  }
+
+  public static String uploadFile(String defaultUploadDir, int lenChar, int countSubDir, MultipartFile image){
+    String subDirNames = Generator.getRandomPathToImage(lenChar, countSubDir);
+    String dir =
+        (defaultUploadDir.endsWith("/") ? defaultUploadDir : defaultUploadDir + "/") + subDirNames;
+
+    String pathToRes = getUploadFileToSubDir(dir, image).replace("\\", "/")
+        .replace(defaultUploadDir, "");
+    pathToRes = pathToRes.startsWith("/") ? "/upload" + pathToRes : "/upload/" + pathToRes;
+    return pathToRes;
+  }
+
+  private static String getUploadFileToSubDir(String subDirNames, MultipartFile image) {
     File subdir = new File(subDirNames);
     if (!subdir.exists() || !subdir.isDirectory()) {
       subdir.mkdirs();
@@ -32,10 +55,10 @@ public class FileUtils {
           new BufferedOutputStream(new FileOutputStream(subdirWithFileName));
       stream.write(bytes);
       stream.close();
-      subdirWithFileName.getPath();
     } catch (IOException e) {
       e.printStackTrace();
     }
+
     return subdirWithFileName.getPath();
   }
 

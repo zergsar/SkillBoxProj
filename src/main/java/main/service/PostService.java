@@ -6,13 +6,13 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import main.api.request.DecisionToPostRequest;
 import main.api.request.CreateUpdatePostRequest;
+import main.api.request.DecisionToPostRequest;
 import main.api.request.PostVoteRequest;
+import main.api.response.ResponseResult;
 import main.api.response.post.PostCommentsResponse;
 import main.api.response.post.PostCreatingErrorsResponse;
 import main.api.response.post.PostImageErrorsResponse;
@@ -23,7 +23,6 @@ import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
 import main.api.response.post.ResponsePostDetails;
-import main.api.response.ResponseResult;
 import main.model.Post;
 import main.model.PostComments;
 import main.model.PostVotes;
@@ -65,7 +64,7 @@ public class PostService {
   @Value("${default.upload.dir}")
   private String defaultUploadDir;
   @Value("${image.upload.max.size}")
-  private int sizeImageMb;
+  private int maxSizeFileMb;
 
 
   public PostService(PostRepository postRepository, UserRepository userRepository,
@@ -324,17 +323,8 @@ public class PostService {
     if (!responseImageUpload.isResult()) {
       return responseImageUpload;
     }
-
-    String subDirNames = Generator.getRandomPathToImage(subdirNameLength, subdirDepth);
-    String dir =
-        (defaultUploadDir.endsWith("/") ? defaultUploadDir : defaultUploadDir + "/") + subDirNames;
-
-//    responseImageUpload.setPathToImage(FileUtils.uploadFileToSubDir(dir, image).replace("\\", "/"));
-
-    String pathToRes = FileUtils.uploadFileToSubDir(dir, image).replace("\\", "/")
-        .replace(defaultUploadDir, "");
-    pathToRes = pathToRes.startsWith("/") ? "/upload" + pathToRes : "/upload/" + pathToRes;
-    responseImageUpload.setPathToImage(pathToRes);
+    responseImageUpload.setPathToImage(
+        FileUtils.uploadFile(defaultUploadDir, subdirNameLength, subdirDepth, image));
     return responseImageUpload;
   }
 
@@ -613,23 +603,15 @@ public class PostService {
   }
 
   private ResponseImageUpload validateImage(MultipartFile image) {
-
     ResponseImageUpload responseImageUpload = new ResponseImageUpload();
     PostImageErrorsResponse postImageErrorsResponse = new PostImageErrorsResponse();
     boolean isValidImage = true;
-
-    if (!(image.isEmpty() || image.getSize() == 0)) {
-      String contentType = image.getContentType();
-      String jpgType = "image/jpeg";
-      String pngType = "image/png";
-      boolean isAllowedImageFormat =
-          Objects.requireNonNull(contentType).equals(jpgType) || contentType.equals(pngType);
-
-      if (image.getSize() / 1000000 > sizeImageMb) {
+    if (FileUtils.isMpfFileNotNull(image)) {
+      if (!FileUtils.isValidMpfFileSize(image, maxSizeFileMb)) {
         isValidImage = false;
         postImageErrorsResponse.setImage("Размер файла превышает допустимый размер");
       }
-      if (!isAllowedImageFormat) {
+      if (!FileUtils.isValidImageFileFormat(image)) {
         isValidImage = false;
         postImageErrorsResponse.setImage("Недопустимый формат изображения");
       }
