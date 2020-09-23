@@ -318,7 +318,6 @@ public class AuthService {
       String email = editProfileRequest.getEmail();
       String name = editProfileRequest.getName();
       String pass = editProfileRequest.getPassword();
-//      MultipartFile photo = editProfileRequest.getPhoto();
       String removePhoto = editProfileRequest.getRemovePhoto();
       boolean changeEmail = !email.equals(user.getEmail());
       boolean changeName = !name.equals(user.getName());
@@ -341,9 +340,9 @@ public class AuthService {
       if (photo != null && FileUtils.isMpfFileNotNull(photo)) {
         try {
           BufferedImage bi = ImageIO.read(photo.getInputStream());
-          bi = ImageUtils.testScaleTwo(bi, maxProfilePhotoHeight, maxProfilePhotoWidth);
+          bi = ImageUtils.scale(bi, maxProfilePhotoHeight, maxProfilePhotoWidth);
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          ImageIO.write(bi, "jpg", baos);
+          ImageIO.write(bi, "jpeg", baos);
           MultipartFile photoAfterScale = new MultipartImage(baos.toByteArray(), photo.getName(),
               photo.getOriginalFilename(), photo.getContentType(), photo.getSize());
           user.setPhoto(
@@ -377,7 +376,6 @@ public class AuthService {
       result = false;
     }
 
-//    MultipartFile photo = editProfileRequest.getPhoto();
     String email = editProfileRequest.getEmail();
     String name = editProfileRequest.getName();
     String pass = editProfileRequest.getPassword();

@@ -11,7 +11,6 @@ public class EditProfileRequest implements Serializable {
   private String name;
   private String password;
   private String removePhoto;
-//  private MultipartFile photo;
 
 
   public String getEmail() {
@@ -37,14 +36,6 @@ public class EditProfileRequest implements Serializable {
   public void setPassword(String password) {
     this.password = password;
   }
-
-//  public MultipartFile getPhoto() {
-//    return photo;
-//  }
-//
-//  public void setPhoto(MultipartFile photo) {
-//    this.photo = photo;
-//  }
 
   public String getRemovePhoto() {
     return removePhoto;

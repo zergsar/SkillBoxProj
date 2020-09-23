@@ -1,6 +1,7 @@
 package main.controllers;
 
 import javax.servlet.http.HttpSession;
+import main.api.request.PutGlobalSettingsRequest;
 import main.api.response.info.AppInfo;
 import main.api.response.settings.ResponseGeneralSettings;
 import main.api.response.statistics.ResponseAllBlogStatistics;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -85,6 +88,18 @@ public class GeneralController {
   @Transactional(readOnly = true)
   public ResponseEntity<ResponseGeneralSettings> getSettings() {
     return new ResponseEntity<>(generalService.getSettingsFromBase(), HttpStatus.OK);
+  }
+
+  @PutMapping("/api/settings")
+  @Transactional
+  public ResponseEntity putSettings(HttpSession httpSession,
+      @RequestBody PutGlobalSettingsRequest pgsr) {
+    String sessionId = httpSession.getId();
+    HttpStatus httpStatus = generalService.putSettingsInBase(sessionId, pgsr);
+    if(httpStatus.equals(HttpStatus.BAD_REQUEST)){
+      return ResponseEntity.status(httpStatus).body("Нет прав для просмотра данной страницы");
+    }
+    return ResponseEntity.status(httpStatus).body(null);
   }
 
 }
