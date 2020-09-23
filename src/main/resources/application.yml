@@ -11,7 +11,7 @@ redis.datasource.url: ${REDIS_URL:redis://localhost:6379}
 
 #MySQL configuration
 spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://${LOGIN_PASS}@localhost:3307/blogdb?serverTimezone=UTC}
-server.port: ${PORT_MYSQL:8080}
+#server.port: ${PORT_MYSQL:8080}
 
 #JPA configuration
 spring.jpa.hibernate.ddl-auto: validate
