@@ -1,10 +1,8 @@
 package main.service;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.MultiPixelPackedSampleModel;
-import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
@@ -30,6 +28,7 @@ import main.model.repository.UserRepository;
 import main.utils.FileUtils;
 import main.utils.Generator;
 import main.utils.ImageUtils;
+import main.utils.MultipartImage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -339,20 +338,17 @@ public class AuthService {
       if (isRemovePhoto) {
         user.setPhoto(null);
       }
-      if(photo != null && FileUtils.isMpfFileNotNull(photo)) {
+      if (photo != null && FileUtils.isMpfFileNotNull(photo)) {
         try {
           BufferedImage bi = ImageIO.read(photo.getInputStream());
-          int width = bi.getWidth();
-          int height = bi.getHeight();
-
-          if(width <= maxProfilePhotoWidth && height <= maxProfilePhotoHeight)
-          {
-
-          }
-          String tempPath = (defaultUploadTempDir.endsWith("/") ? defaultUploadTempDir : defaultUploadTempDir + "/") + photo.getOriginalFilename();
-          File scaleFile = new File(tempPath);
-          ImageIO.write(bi, "png", scaleFile);
-          user.setPhoto(FileUtils.uploadFile(defaultUploadDir, subdirNameLength, subdirDepth, photo));
+          bi = ImageUtils.testScaleTwo(bi, maxProfilePhotoHeight, maxProfilePhotoWidth);
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          ImageIO.write(bi, "jpg", baos);
+          MultipartFile photoAfterScale = new MultipartImage(baos.toByteArray(), photo.getName(),
+              photo.getOriginalFilename(), photo.getContentType(), photo.getSize());
+          user.setPhoto(
+              FileUtils
+                  .uploadFile(defaultUploadDir, subdirNameLength, subdirDepth, photoAfterScale));
         } catch (IOException e) {
           e.printStackTrace();
         }

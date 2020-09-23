@@ -23,6 +23,7 @@ import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
 import main.api.response.post.ResponsePostDetails;
+import main.model.GlobalSettings;
 import main.model.Post;
 import main.model.PostComments;
 import main.model.PostVotes;
@@ -33,12 +34,12 @@ import main.model.cache.RedisCache;
 import main.model.enums.ModerationStatus;
 import main.model.enums.UserInfoWithPhoto;
 import main.model.enums.VoteType;
+import main.model.repository.GlobalSettingsRepository;
 import main.model.repository.PostCommentsRepository;
 import main.model.repository.PostRepository;
 import main.model.repository.PostVotesRepository;
 import main.model.repository.UserRepository;
 import main.utils.FileUtils;
-import main.utils.Generator;
 import main.utils.TextHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -54,6 +55,7 @@ public class PostService {
   private final UserRepository userRepository;
   private final PostVotesRepository postVotesRepository;
   private final PostCommentsRepository postCommentsRepository;
+  private final GlobalSettingsRepository globalSettingsRepository;
   private final TagService tagService;
   private final RedisCache redisCache;
 
@@ -69,12 +71,15 @@ public class PostService {
 
   public PostService(PostRepository postRepository, UserRepository userRepository,
       PostVotesRepository postVotesRepository,
-      PostCommentsRepository postCommentsRepository, TagService tagService,
+      PostCommentsRepository postCommentsRepository,
+      GlobalSettingsRepository globalSettingsRepository,
+      TagService tagService,
       RedisCache redisCache) {
     this.postRepository = postRepository;
     this.userRepository = userRepository;
     this.postVotesRepository = postVotesRepository;
     this.postCommentsRepository = postCommentsRepository;
+    this.globalSettingsRepository = globalSettingsRepository;
     this.tagService = tagService;
     this.redisCache = redisCache;
   }
@@ -229,6 +234,7 @@ public class PostService {
     ResponseCreateUpdatePost responseCreateUpdatePost = validateCreateUpdatePost(
         createUpdatePostRequest, sessionId);
     if (responseCreateUpdatePost.isResult()) {
+
       saveNewPostToBase(sessionId, createUpdatePostRequest);
     }
 
@@ -484,9 +490,16 @@ public class PostService {
       if (timePost.before(currentTime)) {
         timePost = currentTime;
       }
+      ModerationStatus moderationStatus = ModerationStatus.NEW;
+      GlobalSettings gs = globalSettingsRepository.getSettingsByCode("POST_PREMODERATION");
+
+      if (gs.getValue().equals("NO")) {
+        moderationStatus = ModerationStatus.ACCEPTED;
+        isActive = 1;
+      }
 
       Post post = postRepository
-          .save(new Post(timePost, isActive, title, text, user, null, ModerationStatus.NEW));
+          .save(new Post(timePost, isActive, title, text, user, null, moderationStatus));
 
       if (!tags.isEmpty()) {
         linkPostAndTags(tags, post);

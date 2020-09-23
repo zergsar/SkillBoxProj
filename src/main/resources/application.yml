@@ -45,8 +45,8 @@ profile.photo.width: 36
 mail.protocol: smtp
 mail.host: smtp.gmail.com
 mail.port: 587
-mail.username: skillbox.service
-mail.password: SkillBox321
+mail.username: ${MAIL_USERNAME}
+mail.password: ${MAIL_PASSWORD}
 mail.smtp.auth: true
 mail.starttls.enable: true
 mail.debug: false

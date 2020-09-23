@@ -37,8 +37,8 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
 
   @Query(value = "SELECT * FROM posts WHERE is_active = 1"
       + " AND moderation_status = 'ACCEPTED' AND time <= now()"
-      + " AND posts.title LIKE CONCAT ('%', :query, '%')"
-      + " OR posts.text LIKE CONCAT ('%', :query, '%')",
+      + " AND (posts.title LIKE CONCAT ('%', :query, '%')"
+      + " OR posts.text LIKE CONCAT ('%', :query, '%'))",
       nativeQuery = true)
   Page<Post> getFoundPosts(Pageable pageable, @Param("query") String query);
 
