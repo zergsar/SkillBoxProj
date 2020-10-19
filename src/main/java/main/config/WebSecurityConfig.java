@@ -1,6 +1,5 @@
 package main.config;
 
-import main.security.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +21,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   private final UserDetailsService userDetailsService;
 
   @Autowired
-  public WebSecurityConfig(@Qualifier("userDetailsServiceImpl") UserDetailsService userDetailsService) {
+  public WebSecurityConfig(
+      @Qualifier("userDetailsServiceImpl") UserDetailsService userDetailsService) {
     this.userDetailsService = userDetailsService;
   }
 

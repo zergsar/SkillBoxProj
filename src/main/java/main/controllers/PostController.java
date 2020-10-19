@@ -2,16 +2,16 @@ package main.controllers;
 
 import javax.servlet.http.HttpSession;
 import main.api.request.CommentToPostRequest;
-import main.api.request.DecisionToPostRequest;
 import main.api.request.CreateUpdatePostRequest;
+import main.api.request.DecisionToPostRequest;
 import main.api.request.PostVoteRequest;
+import main.api.response.ResponseResult;
 import main.api.response.comment.ResponseCommentToPost;
 import main.api.response.post.ResponseCreateUpdatePost;
 import main.api.response.post.ResponseImageUpload;
 import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
 import main.api.response.post.ResponsePostDetails;
-import main.api.response.ResponseResult;
 import main.api.response.tag.ResponseTags;
 import main.model.enums.VoteType;
 import main.service.CommentService;
@@ -66,7 +66,6 @@ public class PostController {
   }
 
   @GetMapping("/api/post/{id}")
-  @PreAuthorize("hasAuthority('user:write')")
   @Transactional(readOnly = true)
   public ResponseEntity<ResponsePostDetails> postDetails(@PathVariable int id,
       HttpSession httpSession) {
@@ -74,7 +73,7 @@ public class PostController {
     ResponsePostDetails responsePostDetails = postService.getPostDetails(id, sessionId);
     if (responsePostDetails == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-    } 
+    }
     postService.postViewsCounter(id, sessionId);
     return new ResponseEntity<>(responsePostDetails, HttpStatus.OK);
   }

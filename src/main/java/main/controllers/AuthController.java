@@ -1,6 +1,5 @@
 package main.controllers;
 
-import java.security.Principal;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import main.api.request.EditProfileRequest;
@@ -19,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,12 +32,10 @@ public class AuthController {
   private final AuthService authService;
   private final CaptchaService captchaService;
 
-  public AuthController(AuthService authService, CaptchaService captchaService,
-      AuthenticationManager authenticationManager) {
+  public AuthController(AuthService authService, CaptchaService captchaService) {
     this.authService = authService;
     this.captchaService = captchaService;
   }
-
 
 //  @GetMapping("/api/auth/check")
 //  @Transactional(readOnly = true)
@@ -64,7 +60,8 @@ public class AuthController {
 
   @PostMapping("/api/auth/login")
   @Transactional(readOnly = true)
-  public ResponseEntity<ResponseAuth> login(@RequestBody LoginRequest loginRequest, HttpSession httpSession) {
+  public ResponseEntity<ResponseAuth> login(@RequestBody LoginRequest loginRequest,
+      HttpSession httpSession) {
     String sessionId = httpSession.getId();
     ResponseAuth ra = authService.authentication(loginRequest, sessionId);
     return new ResponseEntity<>(ra, HttpStatus.OK);
