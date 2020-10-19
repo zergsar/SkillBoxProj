@@ -12,6 +12,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import main.model.enums.Role;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -125,6 +126,10 @@ public class User implements UserDetails {
 
   public void setId(int id) {
     this.id = id;
+  }
+
+  public Role getRole(){
+    return isModerator == 1 ? Role.MODERATOR : Role.USER;
   }
 
 

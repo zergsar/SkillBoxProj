@@ -19,6 +19,7 @@ import main.service.PostService;
 import main.service.TagService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,14 +66,15 @@ public class PostController {
   }
 
   @GetMapping("/api/post/{id}")
-  @Transactional
+  @PreAuthorize("hasAuthority('user:write')")
+  @Transactional(readOnly = true)
   public ResponseEntity<ResponsePostDetails> postDetails(@PathVariable int id,
       HttpSession httpSession) {
     String sessionId = httpSession.getId();
     ResponsePostDetails responsePostDetails = postService.getPostDetails(id, sessionId);
     if (responsePostDetails == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-    }
+    } 
     postService.postViewsCounter(id, sessionId);
     return new ResponseEntity<>(responsePostDetails, HttpStatus.OK);
   }
@@ -92,6 +94,7 @@ public class PostController {
   }
 
   @GetMapping("/api/post/moderation")
+  @PreAuthorize("hasAuthority('user:moderate')")
   @Transactional(readOnly = true)
   public ResponseEntity<ResponsePost> moderationPost(@RequestParam("offset") int offset,
       @RequestParam("limit") int limit, @RequestParam("status") String status,
@@ -103,6 +106,7 @@ public class PostController {
 
 
   @PostMapping("/api/moderation")
+  @PreAuthorize("hasAuthority('user:moderate')")
   @Transactional
   public ResponseEntity<ResponseResult> decisionToPost(
       @RequestBody DecisionToPostRequest decisionToPostRequest,
@@ -114,6 +118,7 @@ public class PostController {
 
 
   @GetMapping("/api/post/my")
+  @PreAuthorize("hasAuthority('user:write')")
   @Transactional
   public ResponseEntity<ResponsePost> userPost(@RequestParam("offset") int offset,
       @RequestParam("limit") int limit, @RequestParam("status") String status,
@@ -124,6 +129,7 @@ public class PostController {
   }
 
   @PostMapping("/api/post")
+  @PreAuthorize("hasAuthority('user:write')")
   @Transactional
   public ResponseEntity<ResponseCreateUpdatePost> createPost(HttpSession httpSession,
       @RequestBody CreateUpdatePostRequest createUpdatePostRequest) {
@@ -133,6 +139,7 @@ public class PostController {
   }
 
   @PostMapping("/api/image")
+  @PreAuthorize("hasAuthority('user:write')")
   @Transactional
   public ResponseEntity uploadImage(@RequestParam("image") MultipartFile image) {
     ResponseImageUpload responseImageUpload = postService.uploadImageToPost(image);
@@ -143,6 +150,7 @@ public class PostController {
   }
 
   @PutMapping("api/post/{id}")
+  @PreAuthorize("hasAuthority('user:write')")
   @Transactional
   public ResponseEntity<ResponseCreateUpdatePost> editPost(@PathVariable int id,
       HttpSession httpSession, @RequestBody CreateUpdatePostRequest createUpdatePostRequest) {
@@ -152,6 +160,7 @@ public class PostController {
   }
 
   @PostMapping("/api/comment")
+  @PreAuthorize("hasAuthority('user:write')")
   @Transactional
   public ResponseEntity<ResponseCommentToPost> commentPost(
       @RequestBody CommentToPostRequest commentToPostRequest, HttpSession httpSession) {
@@ -175,6 +184,7 @@ public class PostController {
   }
 
   @PostMapping("/api/post/like")
+  @PreAuthorize("hasAuthority('user:write')")
   @Transactional
   public ResponseEntity<ResponseResult> likePost(HttpSession httpSession, @RequestBody
       PostVoteRequest postVoteRequest) {
@@ -188,6 +198,7 @@ public class PostController {
 
 
   @PostMapping("/api/post/dislike")
+  @PreAuthorize("hasAuthority('user:write')")
   @Transactional
   public ResponseEntity<ResponseResult> dislikePost(HttpSession httpSession, @RequestBody
       PostVoteRequest postVoteRequest) {

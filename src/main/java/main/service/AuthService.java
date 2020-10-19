@@ -30,6 +30,11 @@ import main.utils.Generator;
 import main.utils.ImageUtils;
 import main.utils.MultipartImage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,6 +47,7 @@ public class AuthService {
   private final RedisCache redisCache;
   private final PostService postService;
   private final MailSender mailSender;
+  private final AuthenticationManager authenticationManager;
 
   @Value("${image.upload.max.size}")
   private int maxSizeFileMb;
@@ -59,12 +65,14 @@ public class AuthService {
   private int maxProfilePhotoWidth;
 
   public AuthService(UserRepository userRepository, CaptchaService captchaService,
-      RedisCache redisCache, PostService postService, MailSender mailSender) {
+      RedisCache redisCache, PostService postService, MailSender mailSender,
+      AuthenticationManager authenticationManager) {
     this.userRepository = userRepository;
     this.captchaService = captchaService;
     this.redisCache = redisCache;
     this.postService = postService;
     this.mailSender = mailSender;
+    this.authenticationManager = authenticationManager;
   }
 
   private ResponseAuth verifyInfoNewUser(RegistrationRequest user) {
@@ -147,29 +155,48 @@ public class AuthService {
     return captchaService.validateCaptcha(captcha, secretCode);
   }
 
-  public ResponseAuth authentication(LoginRequest user, String sessionId) {
-    boolean isAllow = false;
-    BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+//  public ResponseAuth authentication(LoginRequest user, String sessionId) {
+//    boolean isAllow = false;
+//    BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+//
+//    String email = user.getEmail();
+//    String password = user.getPassword();
+//
+//    ResponseAuth responseAuth = new ResponseAuth();
+//
+//    if (isExistEmail(email)) {
+//      int id = userRepository.findByEmail(email).get().getId();
+//      String dbPass = userRepository.findByEmail(email).get().getPassword();
+//
+//      if (bCryptPasswordEncoder.matches(password, dbPass)) {
+//        responseAuth.setUser(getUserInfo(id));
+//        isAllow = true;
+//        redisCache.saveSessionToCache(sessionId, id);
+//      }
+//    }
+//
+//    responseAuth.setResult(isAllow);
+//
+//    return responseAuth;
+//  }
 
-    String email = user.getEmail();
-    String password = user.getPassword();
+  public ResponseAuth authentication(LoginRequest loginRequest, String sessionId) {
 
-    ResponseAuth responseAuth = new ResponseAuth();
+    Authentication auth = authenticationManager
+        .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),
+            loginRequest.getPassword()));
+    SecurityContextHolder.getContext().setAuthentication(auth);
+    org.springframework.security.core.userdetails.User userSecurity =
+        (org.springframework.security.core.userdetails.User) auth.getPrincipal();
 
-    if (isExistEmail(email)) {
-      int id = userRepository.findByEmail(email).get().getId();
-      String dbPass = userRepository.findByEmail(email).get().getPassword();
+    ResponseAuth ra = getUserInfo(userSecurity.getUsername());
 
-      if (bCryptPasswordEncoder.matches(password, dbPass)) {
-        responseAuth.setUser(getUserInfo(id));
-        isAllow = true;
-        redisCache.saveSessionToCache(sessionId, id);
-      }
+    if (ra.getResult()) {
+      int id = ra.getUser().getId();
+      redisCache.saveSessionToCache(sessionId, id);
     }
 
-    responseAuth.setResult(isAllow);
-
-    return responseAuth;
+    return ra;
   }
 
   public boolean isModerator(int id) {
@@ -189,16 +216,15 @@ public class AuthService {
 
 
   public ResponseAuth isActiveSession(String sessionId) {
-    ResponseAuth responseAuth = new ResponseAuth();
-    boolean isLogin = false;
     Optional<Integer> optId = redisCache.findUserIdBySessionId(sessionId);
     if (optId.isPresent()) {
-      int id = optId.get();
-      responseAuth.setUser(getUserInfo(id));
-      isLogin = true;
+      int userId = optId.get();
+      String email = userRepository.findById(userId).orElseThrow(
+          () -> new UsernameNotFoundException("Пользователь с id: " + userId + " не найден"))
+          .getEmail();
+      return getUserInfo(email);
     }
-    responseAuth.setResult(isLogin);
-    return responseAuth;
+    return new ResponseAuth();
   }
 
   public ResponseResult getRestoreLink(RestorePassLinkRequest restorePassLinkRequest,
@@ -275,38 +301,41 @@ public class AuthService {
     return rp;
   }
 
-  private AuthUserInfoResponse getUserInfo(int id) {
+  private ResponseAuth getUserInfo(String email) {
+    boolean isAllow = false;
+    ResponseAuth responseAuth = new ResponseAuth();
     AuthUserInfoResponse authUserInfoResponse = new AuthUserInfoResponse();
 
-    Optional<User> userOptional = userRepository.findById(id);
+    User user = userRepository.findByEmail(email).orElseThrow(
+        () -> new UsernameNotFoundException(email));
 
-    if (userOptional.isEmpty()) {
-      throw new RuntimeException("User not found");
+    if (user != null) {
+      isAllow = true;
+      int id = user.getId();
+      String name = user.getName();
+      String photo = user.getPhoto();
+      int modCount = 0;
+
+      boolean isModerator = user.isModerator() == 1;
+      boolean settings = isModerator;
+
+      if (isModerator) {
+        modCount = postService.getCountPostsForModeration();
+      }
+
+      authUserInfoResponse.setId(id);
+      authUserInfoResponse.setName(name);
+      authUserInfoResponse.setPhoto(photo);
+      authUserInfoResponse.setEmail(email);
+      authUserInfoResponse.setModeration(isModerator);
+      authUserInfoResponse.setModerationCount(modCount);
+      authUserInfoResponse.setSettings(settings);
     }
 
-    User user = userOptional.get();
+    responseAuth.setResult(isAllow);
+    responseAuth.setUser(authUserInfoResponse);
 
-    String name = user.getName();
-    String email = user.getEmail();
-    String photo = user.getPhoto();
-    int modCount = 0;
-
-    boolean isModerator = user.isModerator() == 1;
-    boolean settings = isModerator;
-
-    if (isModerator) {
-      modCount = postService.getCountPostsForModeration();
-    }
-
-    authUserInfoResponse.setId(id);
-    authUserInfoResponse.setName(name);
-    authUserInfoResponse.setPhoto(photo);
-    authUserInfoResponse.setEmail(email);
-    authUserInfoResponse.setModeration(isModerator);
-    authUserInfoResponse.setModerationCount(modCount);
-    authUserInfoResponse.setSettings(settings);
-
-    return authUserInfoResponse;
+    return responseAuth;
   }
 
   public ResponseUpdateProfile updateProfile(String sessionId,
@@ -374,6 +403,8 @@ public class AuthService {
     if (user == null) {
       System.out.println("Пользователь не найден");
       result = false;
+      rup.setResult(result);
+      return rup;
     }
 
     String email = editProfileRequest.getEmail();

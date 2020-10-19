@@ -1,5 +1,6 @@
 package main.controllers;
 
+import java.security.Principal;
 import javax.servlet.http.HttpSession;
 import main.api.request.PutGlobalSettingsRequest;
 import main.api.response.info.AppInfo;
@@ -11,6 +12,7 @@ import main.service.GeneralService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -74,6 +76,7 @@ public class GeneralController {
   }
 
   @GetMapping("/api/statistics/my")
+  @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<ResponseAllBlogStatistics> myBlogStatistics(HttpSession httpSession) {
     String sessionId = httpSession.getId();
     if (authService.isActiveSession(sessionId).getResult()) {
@@ -91,6 +94,7 @@ public class GeneralController {
   }
 
   @PutMapping("/api/settings")
+  @PreAuthorize("hasAuthority('user:moderate')")
   @Transactional
   public ResponseEntity putSettings(HttpSession httpSession,
       @RequestBody PutGlobalSettingsRequest pgsr) {

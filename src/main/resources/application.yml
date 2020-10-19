@@ -6,7 +6,7 @@ email: mail@mail.ru
 copyright: Тимиров Сергей
 copyrightFrom: 2020
 
-#server port
+#Server port
 server.port: ${PORT:8080}
 
 #Redis configuration
@@ -19,7 +19,7 @@ spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://${LOGIN_PASS}@localho
 spring.jpa.hibernate.ddl-auto: validate
 spring.jpa.generate-ddl: false
 spring.data.jpa.repositories.enabled: true
-spring.jpa.show-sql: true
+spring.jpa.show-sql: false
 
 #Captcha settings
 ##Timeout deleting captcha in minutes

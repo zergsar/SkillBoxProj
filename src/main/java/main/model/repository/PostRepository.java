@@ -31,7 +31,9 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
 
   @Query(value = "SELECT * FROM posts WHERE is_active = 1"
       + " AND moderation_status = 'ACCEPTED' AND time <= now()"
-      + " ORDER BY (SELECT count(*) FROM post_votes WHERE post_id = posts.id AND value = 1) DESC",
+      + " ORDER BY (SELECT count(*) FROM post_votes WHERE post_id = posts.id AND value = 1) DESC,"
+      + " (SELECT count(*) FROM post_votes WHERE post_id = posts.id AND value = -1) ASC,"
+      + " view_count DESC",
       nativeQuery = true)
   Page<Post> getBestPosts(Pageable pageable);
 
