@@ -1,5 +1,8 @@
 package main.config;
 
+import jodd.net.HttpStatus;
+import jodd.net.HttpStatus.HttpStatus401;
+import main.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +15,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
 @Configuration
 @EnableWebSecurity
@@ -34,15 +38,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Override
   protected void configure(HttpSecurity httpSecurity) throws Exception {
     httpSecurity
-        .csrf()
-        .disable()
+        .exceptionHandling()
+        .authenticationEntryPoint(new HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED))
+        .and()
+        .csrf().disable()
         .authorizeRequests()
         .antMatchers("/**").permitAll()
         .anyRequest().authenticated()
         .and()
-        .formLogin()
-        .disable()
-        .httpBasic();
+        .formLogin().disable()
+        .httpBasic().disable();
   }
 
 
@@ -59,4 +64,5 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   public AuthenticationManager authenticationManagerBean() throws Exception {
     return super.authenticationManagerBean();
   }
+
 }

@@ -105,9 +105,9 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
       + " AND time <= now() AND user_id = :id", nativeQuery = true)
   Integer getCountVisiblePostsByAuthorId(@Param("id") int id);
 
-  @Query(value = "SELECT id FROM posts WHERE is_active = 1 AND moderation_status = 'ACCEPTED'"
+  @Query(value = "SELECT * FROM posts WHERE is_active = 1 AND moderation_status = 'ACCEPTED'"
       + " AND time <= now() AND user_id = :id", nativeQuery = true)
-  List<Integer> getAllIdVisiblePostsByAuthorId(@Param("id") int id);
+  List<Post> getAllIdVisiblePostsByAuthorId(@Param("id") int id);
 
   @Query(value =
       "SELECT ifnull(sum(view_count), 0) FROM posts WHERE is_active = 1 AND moderation_status = 'ACCEPTED'"

@@ -66,7 +66,7 @@ public class PostController {
   }
 
   @GetMapping("/api/post/{id}")
-  @Transactional(readOnly = true)
+  @Transactional
   public ResponseEntity<ResponsePostDetails> postDetails(@PathVariable int id,
       HttpSession httpSession) {
     String sessionId = httpSession.getId();

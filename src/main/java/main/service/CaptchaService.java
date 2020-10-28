@@ -2,34 +2,31 @@ package main.service;
 
 import java.util.Optional;
 import main.api.response.captcha.CaptchaInfoResponse;
+import main.config.CaptchaConfig;
 import main.model.CaptchaCodes;
 import main.model.repository.CaptchaCodesRepository;
 import main.utils.Generator;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CaptchaService {
 
+  private final CaptchaConfig captchaConfig;
   private final CaptchaCodesRepository captchaCodesRepository;
 
-  @Value("${captcha.timeout}")
-  private int deleteCaptchaTimeout;
-  @Value("${captcha.visible.length}")
-  private int visibleLength;
-  @Value("${captcha.secret.length}")
-  private int secretLength;
 
-  public CaptchaService(CaptchaCodesRepository captchaCodesRepository) {
+  public CaptchaService(CaptchaConfig captchaConfig,
+      CaptchaCodesRepository captchaCodesRepository) {
+    this.captchaConfig = captchaConfig;
     this.captchaCodesRepository = captchaCodesRepository;
   }
 
   public CaptchaInfoResponse generateCaptcha() {
     CaptchaInfoResponse captchaInfoResponse = new CaptchaInfoResponse();
 
-    String secretCode = Generator.generateRandomString(secretLength);
-    String visibleCode = Generator.generateRandomString(visibleLength);
-    String imageString64 = Generator.generateCaptchaImageString(visibleCode);
+    String secretCode = Generator.generateRandomString(captchaConfig.getSecretLength());
+    String visibleCode = Generator.generateRandomString(captchaConfig.getVisibleLength());
+    String imageString64 = Generator.generateCaptchaImageString(visibleCode, captchaConfig);
 
     captchaInfoResponse.setSecret(secretCode);
     captchaInfoResponse.setImage("data:image/png;base64, " + imageString64);
@@ -57,6 +54,6 @@ public class CaptchaService {
   }
 
   public void deleteOldCaptcha() {
-    captchaCodesRepository.deleteAllOldCaptcha(deleteCaptchaTimeout);
+    captchaCodesRepository.deleteAllOldCaptcha(captchaConfig.getTimeout());
   }
 }

@@ -32,6 +32,7 @@ import main.model.Tag2Post;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.enums.ModerationStatus;
+import main.model.enums.TypeDecisionToPost;
 import main.model.enums.UserInfoWithPhoto;
 import main.model.enums.VoteType;
 import main.model.repository.GlobalSettingsRepository;
@@ -174,7 +175,6 @@ public class PostService {
   public void postViewsCounter(int id, String sessionId) {
     boolean isCacheSession = redisCache.isCacheSession(sessionId);
     Post post;
-
     Optional<Post> postOptional = postRepository.findById(id);
     if (isCacheSession && postOptional.isPresent()) {
       User user = getUserFromSession(sessionId);
@@ -272,11 +272,11 @@ public class PostService {
         return responseResult;
       }
       Post post = postOptional.get();
-      if (decisionToPostRequest.getDecision().equals("accept")) {
+      if (decisionToPostRequest.getDecision().equals(TypeDecisionToPost.ACCEPT.getDecision())) {
         isResult = true;
         post.setModerationStatus(ModerationStatus.ACCEPTED);
       }
-      if (decisionToPostRequest.getDecision().equals("decline")) {
+      if (decisionToPostRequest.getDecision().equals(TypeDecisionToPost.DECLINE.getDecision())) {
         isResult = true;
         post.setModerationStatus(ModerationStatus.DECLINED);
       }

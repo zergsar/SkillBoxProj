@@ -9,6 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 public class FileUtils {
 
+  private static final int BYTE_IN_MEGABYTE = 1000000;
+
   public static boolean isValidImageFileFormat(MultipartFile mpf) {
     String contentType = mpf.getContentType();
     String jpgType = "image/jpeg";
@@ -18,7 +20,7 @@ public class FileUtils {
 
   public static boolean isValidMpfFileSize(MultipartFile mpf, int maxSizeMb) {
     boolean result = true;
-    if (mpf.getSize() / 1000000 > maxSizeMb) {
+    if (mpf.getSize() / BYTE_IN_MEGABYTE > maxSizeMb) {
       result = false;
     }
     return result;

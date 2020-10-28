@@ -167,4 +167,45 @@ public class User implements UserDetails {
   public boolean isEnabled() {
     return true;
   }
+
+
+  public static class Builder{
+
+    private User newUser;
+
+    public Builder(){
+      newUser = new User();
+    }
+
+    public Builder withName(String name){
+      newUser.setName(name);
+      return this;
+    }
+
+    public Builder withIsModerator(byte isModerator){
+      newUser.setIsModerator(isModerator);
+      return this;
+    }
+
+    public Builder withEmail(String email){
+      newUser.setEmail(email);
+      return this;
+    }
+
+    public Builder withPassword(String password){
+      newUser.setPassword(password);
+      return this;
+    }
+
+    public Builder withRegTime(Calendar regTime){
+      newUser.setRegTime(regTime);
+      return this;
+    }
+
+    public User build(){
+      return newUser;
+    }
+  }
+
+
 }

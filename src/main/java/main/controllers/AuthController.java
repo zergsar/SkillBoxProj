@@ -37,13 +37,6 @@ public class AuthController {
     this.captchaService = captchaService;
   }
 
-//  @GetMapping("/api/auth/check")
-//  @Transactional(readOnly = true)
-//  public ResponseEntity<ResponseAuth> isAuthorization(HttpSession httpSession) {
-//    String sessionId = httpSession.getId();
-//    return new ResponseEntity<>(authService.isActiveSession(sessionId), HttpStatus.OK);
-//  }
-
   @GetMapping("/api/auth/check")
   @Transactional(readOnly = true)
   public ResponseEntity<ResponseAuth> isAuthorization(HttpSession httpSession) {

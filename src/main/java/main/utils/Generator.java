@@ -6,7 +6,6 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -14,15 +13,9 @@ import java.util.Base64;
 import java.util.Random;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
-import main.model.repository.PostRepository;
+import main.config.CaptchaConfig;
 
 public class Generator {
-
-  private final PostRepository postRepository;
-
-  public Generator(PostRepository postRepository) {
-    this.postRepository = postRepository;
-  }
 
   public static String getRandomPathToImage(int lenChar, int countSubDir) {
     String randomString = generateRandomString(lenChar * countSubDir);
@@ -47,13 +40,13 @@ public class Generator {
         .collect(Collectors.joining());
   }
 
-  public static String generateCaptchaImageString(String visibleCode) {
+  public static String generateCaptchaImageString(String visibleCode, CaptchaConfig captchaConfig) {
     String imageString64 = null;
-    int width = 100;
-    int height = 35;
-    int fontSize = 16;
-    int textCoordX = 20;
-    int textCoordY = 20;
+    int width = captchaConfig.getWidth();
+    int height = captchaConfig.getHeight();
+    int fontSize = captchaConfig.getFontSize();
+    int textCoordX = captchaConfig.getTextCoordX();
+    int textCoordY = captchaConfig.getTextCoordY();
 
     BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
     ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -94,6 +87,4 @@ public class Generator {
 
     return null;
   }
-
-
 }

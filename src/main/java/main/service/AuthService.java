@@ -117,8 +117,13 @@ public class AuthService {
     ResponseAuth responseAuth = verifyInfoNewUser(user);
 
     if (responseAuth.getResult()) {
-      User newUser = new User((byte) 0, Calendar.getInstance(), name, email,
-          bCryptPasswordEncoder.encode(password));
+      User newUser = new User.Builder()
+          .withIsModerator((byte) 0)
+          .withRegTime(Calendar.getInstance())
+          .withName(name)
+          .withEmail(email)
+          .withPassword(bCryptPasswordEncoder.encode(password))
+          .build();
       userRepository.save(newUser);
     }
 
@@ -155,48 +160,32 @@ public class AuthService {
     return captchaService.validateCaptcha(captcha, secretCode);
   }
 
-//  public ResponseAuth authentication(LoginRequest user, String sessionId) {
-//    boolean isAllow = false;
-//    BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-//
-//    String email = user.getEmail();
-//    String password = user.getPassword();
-//
-//    ResponseAuth responseAuth = new ResponseAuth();
-//
-//    if (isExistEmail(email)) {
-//      int id = userRepository.findByEmail(email).get().getId();
-//      String dbPass = userRepository.findByEmail(email).get().getPassword();
-//
-//      if (bCryptPasswordEncoder.matches(password, dbPass)) {
-//        responseAuth.setUser(getUserInfo(id));
-//        isAllow = true;
-//        redisCache.saveSessionToCache(sessionId, id);
-//      }
-//    }
-//
-//    responseAuth.setResult(isAllow);
-//
-//    return responseAuth;
-//  }
 
   public ResponseAuth authentication(LoginRequest loginRequest, String sessionId) {
 
-    Authentication auth = authenticationManager
-        .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),
-            loginRequest.getPassword()));
-    SecurityContextHolder.getContext().setAuthentication(auth);
-    org.springframework.security.core.userdetails.User userSecurity =
-        (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+    try {
+      Authentication auth = authenticationManager
+          .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),
+              loginRequest.getPassword()));
 
-    ResponseAuth ra = getUserInfo(userSecurity.getUsername());
+      ResponseAuth ra;
 
-    if (ra.getResult()) {
-      int id = ra.getUser().getId();
-      redisCache.saveSessionToCache(sessionId, id);
+      if (auth.isAuthenticated()) {
+        org.springframework.security.core.userdetails.User userSecurity =
+            (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+        ra = getUserInfo(userSecurity.getUsername());
+        if (ra.getResult()) {
+          SecurityContextHolder.getContext().setAuthentication(auth);
+          int id = ra.getUser().getId();
+          redisCache.saveSessionToCache(sessionId, id);
+          return ra;
+        }
+      }
+    } catch (Exception e) {
+      System.out.println(e);
     }
+    return new ResponseAuth();
 
-    return ra;
   }
 
   public boolean isModerator(int id) {
@@ -429,7 +418,8 @@ public class AuthService {
     }
 
     if (isExistPhoto && !FileUtils.isValidMpfFileSize(photo, maxSizeFileMb)) {
-      uper.setPhoto("Фото слишком большое, нужно не более " + maxSizeFileMb + " Мб");
+      uper.setPhoto("Слишком большой размер файла с фотографией. (максимально допустимый размер: "
+          + maxSizeFileMb + " Мб)");
       result = false;
     }
 

@@ -6,6 +6,7 @@ import main.api.request.PutGlobalSettingsRequest;
 import main.api.response.settings.ResponseGeneralSettings;
 import main.api.response.statistics.ResponseAllBlogStatistics;
 import main.model.GlobalSettings;
+import main.model.Post;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.repository.GlobalSettingsRepository;
@@ -74,9 +75,10 @@ public class GeneralService {
 
   public ResponseAllBlogStatistics getMyBlogStatistics(int id) {
     ResponseAllBlogStatistics rbs = new ResponseAllBlogStatistics();
+    List<Post> allPostIds = postRepository.getAllIdVisiblePostsByAuthorId(id);
 
     rbs.setPostsCount(postRepository.getCountVisiblePostsByAuthorId(id));
-    List<Integer> allPostIds = postRepository.getAllIdVisiblePostsByAuthorId(id);
+
     rbs.setLikesCount(postVotesRepository.getLikesCountByPostIds(allPostIds));
     rbs.setDislikesCount(postVotesRepository.getDislikesCountByPostIds(allPostIds));
     rbs.setViewsCount(postRepository.getViewCountPostsByAuthorId(id));

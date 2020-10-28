@@ -13,7 +13,7 @@ server.port: ${PORT:8080}
 redis.datasource.url: ${REDIS_URL:redis://localhost:6379}
 
 #MySQL configuration
-spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://${LOGIN_PASS}@localhost:3307/blogdb?serverTimezone=UTC}
+spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://${LOGIN_PASS}@localhost:3307/blogdb?useTimezone=true&serverTimezone=UTC}
 
 #JPA configuration
 spring.jpa.hibernate.ddl-auto: validate
@@ -27,6 +27,13 @@ captcha.timeout: 10
 ##Length captcha codes
 captcha.visible.length: 7
 captcha.secret.length: 17
+##Captcha appearance
+captcha.appearance.width: 100
+captcha.appearance.height: 35
+captcha.appearance.fontSize: 16
+captcha.appearance.textCoordX: 20
+captcha.appearance.textCoordY: 20
+
 
 #Subdirectories config
 subdir.name.length: 3

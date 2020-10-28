@@ -18,17 +18,17 @@ public interface PostVotesRepository extends CrudRepository<PostVotes, Integer> 
   @Query("SELECT COUNT(*) FROM PostVotes as pv WHERE pv.postId = :id AND pv.value = -1")
   int getDislikePost(@Param("id") Post post);
 
-  @Query(value = "SELECT count(*) FROM post_votes WHERE value = 1;", nativeQuery = true)
+  @Query(value = "SELECT count(*) FROM post_votes WHERE value = 1", nativeQuery = true)
   Integer getTotalLikesCount();
 
-  @Query(value = "SELECT count(*) FROM post_votes WHERE value = -1;", nativeQuery = true)
+  @Query(value = "SELECT count(*) FROM post_votes WHERE value = -1", nativeQuery = true)
   Integer getTotalDislikesCount();
 
   @Query("SELECT count(*) FROM PostVotes as pv WHERE pv.postId in :ids AND pv.value = 1")
-  Integer getLikesCountByPostIds(@Param("ids") List<Integer> ids);
+  Integer getLikesCountByPostIds(@Param("ids") List<Post> ids);
 
   @Query("SELECT count(*) FROM PostVotes as pv WHERE pv.postId in :ids AND pv.value = -1")
-  Integer getDislikesCountByPostIds(@Param("ids") List<Integer> ids);
+  Integer getDislikesCountByPostIds(@Param("ids") List<Post> ids);
 
   @Query(value = "SELECT * FROM post_votes WHERE post_id = :postId AND user_id = :userId AND value = :value"
       , nativeQuery = true)
