@@ -9,6 +9,8 @@ import main.model.GlobalSettings;
 import main.model.Post;
 import main.model.User;
 import main.model.cache.RedisCache;
+import main.model.enums.GlobalSettingsType;
+import main.model.enums.SettingsValue;
 import main.model.repository.GlobalSettingsRepository;
 import main.model.repository.PostRepository;
 import main.model.repository.PostVotesRepository;
@@ -41,7 +43,7 @@ public class GeneralService {
     globalSettingsRepository.findAll().forEach(GlobalSettings ->
     {
       boolean value = false;
-      if (GlobalSettings.getValue().equals("YES")) {
+      if (GlobalSettings.getValue().equals(SettingsValue.YES.getValue())) {
         value = true;
       }
       switch (GlobalSettings.getCode()) {
@@ -98,31 +100,36 @@ public class GeneralService {
       return HttpStatus.INTERNAL_SERVER_ERROR;
     }
     User user = userOpt.get();
-    if(user.isModerator() == 0){
+    if (user.isModerator() == 0) {
       return HttpStatus.BAD_REQUEST;
     }
 
-    GlobalSettings multiuserMode = globalSettingsRepository.getSettingsByCode("MULTIUSER_MODE");
-    GlobalSettings postPremod = globalSettingsRepository.getSettingsByCode("POST_PREMODERATION");
-    GlobalSettings statIsPublic = globalSettingsRepository.getSettingsByCode("STATISTICS_IS_PUBLIC");
+    GlobalSettings multiuserMode = globalSettingsRepository
+        .getSettingsByCode(GlobalSettingsType.MULTIUSER_MODE.getValue());
+    GlobalSettings postPremod = globalSettingsRepository
+        .getSettingsByCode(GlobalSettingsType.POST_PREMODERATION.getValue());
+    GlobalSettings statIsPublic = globalSettingsRepository
+        .getSettingsByCode(GlobalSettingsType.STATISTICS_IS_PUBLIC.getValue());
 
-    boolean multiuserModeBool = multiuserMode.getValue().equals("YES");
-    boolean postPremodBool = postPremod.getValue().equals("YES");
-    boolean statIsPublicBool = statIsPublic.getValue().equals("YES");
+    boolean multiuserModeBool = multiuserMode.getValue().equals(SettingsValue.YES.getValue());
+    boolean postPremodBool = postPremod.getValue().equals(SettingsValue.YES.getValue());
+    boolean statIsPublicBool = statIsPublic.getValue().equals(SettingsValue.YES.getValue());
 
-    if(pgsr.isMultiuserMode() != multiuserModeBool){
-      multiuserMode.setValue(pgsr.isMultiuserMode() ? "YES" : "NO");
+    if (pgsr.isMultiuserMode() != multiuserModeBool) {
+      multiuserMode.setValue(
+          pgsr.isMultiuserMode() ? SettingsValue.YES.getValue() : SettingsValue.NO.getValue());
       globalSettingsRepository.save(multiuserMode);
     }
-    if(pgsr.isPostPremoderation() != postPremodBool){
-      postPremod.setValue(pgsr.isPostPremoderation() ? "YES" : "NO");
+    if (pgsr.isPostPremoderation() != postPremodBool) {
+      postPremod.setValue(
+          pgsr.isPostPremoderation() ? SettingsValue.YES.getValue() : SettingsValue.NO.getValue());
       globalSettingsRepository.save(postPremod);
     }
-    if(pgsr.isStatisticsIsPublic() != statIsPublicBool){
-      statIsPublic.setValue(pgsr.isStatisticsIsPublic() ? "YES" : "NO");
+    if (pgsr.isStatisticsIsPublic() != statIsPublicBool) {
+      statIsPublic.setValue(
+          pgsr.isStatisticsIsPublic() ? SettingsValue.YES.getValue() : SettingsValue.NO.getValue());
       globalSettingsRepository.save(statIsPublic);
     }
-
 
     return httpStatus;
   }

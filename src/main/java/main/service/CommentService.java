@@ -23,6 +23,8 @@ public class CommentService {
   private final UserRepository userRepository;
   private final RedisCache redisCache;
 
+  private final int MIN_COMMENT_LENGTH = 2;
+
   public CommentService(PostCommentsRepository postCommentsRepository,
       PostRepository postRepository, UserRepository userRepository,
       RedisCache redisCache) {
@@ -107,7 +109,7 @@ public class CommentService {
       }
     }
 
-    if (textCommentWithoutHtml.length() < 2) {
+    if (textCommentWithoutHtml.length() < MIN_COMMENT_LENGTH) {
       isResult = false;
       commentErrorsResponse.setText("Текст комментария не задан или слишком короткий");
     }

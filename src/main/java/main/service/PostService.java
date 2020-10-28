@@ -32,6 +32,8 @@ import main.model.Tag2Post;
 import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.enums.ModerationStatus;
+import main.model.enums.SettingsValue;
+import main.model.enums.SortMode;
 import main.model.enums.TypeDecisionToPost;
 import main.model.enums.UserInfoWithPhoto;
 import main.model.enums.VoteType;
@@ -51,6 +53,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class PostService {
+
+  private final int MILIS_IN_SECOND = 1000;
 
   private final PostRepository postRepository;
   private final UserRepository userRepository;
@@ -93,6 +97,7 @@ public class PostService {
     Page<Post> posts;
 
     switch (mode) {
+
       case "recent":
         posts = postRepository.getRecentPosts(getPagination(offset, limit));
         break;
@@ -493,7 +498,7 @@ public class PostService {
       ModerationStatus moderationStatus = ModerationStatus.NEW;
       GlobalSettings gs = globalSettingsRepository.getSettingsByCode("POST_PREMODERATION");
 
-      if (gs.getValue().equals("NO")) {
+      if (gs.getValue().equals(SettingsValue.NO.getValue())) {
         moderationStatus = ModerationStatus.ACCEPTED;
         isActive = 1;
       }
@@ -533,7 +538,7 @@ public class PostService {
       postInfoResponse = new PostInfoResponse();
 
       postInfoResponse.setId(post.getId());
-      postInfoResponse.setTimestamp(post.getTime().getTimeInMillis() / 1000);
+      postInfoResponse.setTimestamp(post.getTime().getTimeInMillis() / MILIS_IN_SECOND);
       postInfoResponse.setUser(getUserInfoResponse(userId, UserInfoWithPhoto.NO));
       postInfoResponse.setTitle(post.getTitle());
       postInfoResponse.setAnnounce(TextHandler.getTextWithoutHtml(post.getText()));
@@ -552,7 +557,7 @@ public class PostService {
     ResponsePostDetails responsePostDetails = new ResponsePostDetails();
     responsePostDetails.setId(post.getId());
     responsePostDetails.setActive(post.getIsActive() == 1);
-    responsePostDetails.setTimestamp(post.getTime().getTimeInMillis() / 1000);
+    responsePostDetails.setTimestamp(post.getTime().getTimeInMillis() / MILIS_IN_SECOND);
     responsePostDetails
         .setUser(getUserInfoResponse(post.getUserId().getId(), UserInfoWithPhoto.NO));
     responsePostDetails.setTitle(post.getTitle());
@@ -575,7 +580,7 @@ public class PostService {
       User user = userOptional.get();
       postUserInfoResponse.setId(user.getId());
       postUserInfoResponse.setName(user.getName());
-      if (withPhoto.name().equals("YES")) {
+      if (withPhoto.name().equals(UserInfoWithPhoto.YES.toString())) {
         postUserInfoResponse.setPhoto(user.getPhoto());
       }
     }
@@ -596,7 +601,7 @@ public class PostService {
       int userId = pc.getUserId().getId();
       postCommentsResponse.setId(pc.getId());
       postCommentsResponse.setText(pc.getText());
-      postCommentsResponse.setTimestamp(pc.getTime().getTimeInMillis() / 1000);
+      postCommentsResponse.setTimestamp(pc.getTime().getTimeInMillis() / MILIS_IN_SECOND);
       postCommentsResponse.setUser(getUserInfoResponse(userId, UserInfoWithPhoto.YES));
       listPostComments.add(postCommentsResponse);
     }

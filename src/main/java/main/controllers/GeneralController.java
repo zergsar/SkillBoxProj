@@ -1,6 +1,5 @@
 package main.controllers;
 
-import java.security.Principal;
 import javax.servlet.http.HttpSession;
 import main.api.request.PutGlobalSettingsRequest;
 import main.api.response.info.AppInfo;
@@ -100,7 +99,7 @@ public class GeneralController {
       @RequestBody PutGlobalSettingsRequest pgsr) {
     String sessionId = httpSession.getId();
     HttpStatus httpStatus = generalService.putSettingsInBase(sessionId, pgsr);
-    if(httpStatus.equals(HttpStatus.BAD_REQUEST)){
+    if (httpStatus.equals(HttpStatus.BAD_REQUEST)) {
       return ResponseEntity.status(httpStatus).body("Нет прав для просмотра данной страницы");
     }
     return ResponseEntity.status(httpStatus).body(null);
