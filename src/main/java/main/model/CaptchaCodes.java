@@ -36,7 +36,6 @@ public class CaptchaCodes {
     this.code = code;
     this.secretCode = secretCode;
     this.time = Calendar.getInstance();
-
   }
 
 

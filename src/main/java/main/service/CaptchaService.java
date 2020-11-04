@@ -1,5 +1,6 @@
 package main.service;
 
+import java.util.Calendar;
 import java.util.Optional;
 import main.api.response.captcha.CaptchaInfoResponse;
 import main.config.CaptchaConfig;
@@ -46,7 +47,7 @@ public class CaptchaService {
   public boolean validateCaptcha(String code, String secretCode) {
     Optional<CaptchaCodes> captchaCode = captchaCodesRepository.findByCode(code);
 
-    if (!captchaCode.isPresent()) {
+    if (captchaCode.isEmpty()) {
       return false;
     }
 
@@ -54,6 +55,7 @@ public class CaptchaService {
   }
 
   public void deleteOldCaptcha() {
-    captchaCodesRepository.deleteAllOldCaptcha(captchaConfig.getTimeout());
+    Calendar currTime = Calendar.getInstance();
+    captchaCodesRepository.deleteAllOldCaptcha(captchaConfig.getTimeout(), currTime);
   }
 }

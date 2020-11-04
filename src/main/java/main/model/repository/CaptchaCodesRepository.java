@@ -1,5 +1,6 @@
 package main.model.repository;
 
+import java.util.Calendar;
 import java.util.Optional;
 import main.model.CaptchaCodes;
 import org.springframework.data.jpa.repository.Modifying;
@@ -17,9 +18,9 @@ public interface CaptchaCodesRepository extends CrudRepository<CaptchaCodes, Int
   @Modifying
   @Transactional
   @Query(value = "DELETE FROM captcha_codes WHERE "
-      + "time_to_sec(timediff(now(), captcha_codes.time))/60 > :timeout",
+      + "time_to_sec(timediff(:currTime, captcha_codes.time))/60 > :timeout",
       nativeQuery = true)
-  void deleteAllOldCaptcha(@Param("timeout") int timeout);
+  void deleteAllOldCaptcha(@Param("timeout") int timeout, @Param("currTime") Calendar currTime);
 
 
 }
