@@ -13,7 +13,7 @@ server.port: ${PORT:8080}
 redis.datasource.url: ${REDIS_URL:redis://localhost:6379}
 
 #MySQL configuration
-spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://${LOGIN_PASS}@localhost:3307/blogdb?useTimezone=true&serverTimezone=UTC}
+spring.datasource.url: jdbc:${CLEARDB_DATABASE_URL:mysql://${LOGIN_PASS}@localhost:3306/blogdb?useTimezone=true&serverTimezone=UTC}
 
 #JPA configuration
 spring.jpa.hibernate.ddl-auto: validate
@@ -41,7 +41,6 @@ subdir.depth: 3
 
 #Default directories for upload images
 default.upload.dir: src/main/webapp/upload/
-default.upload.temp.dir: src/main/webapp/temp/
 
 #Max size uploaded image (Mb)
 image.upload.max.size: 5

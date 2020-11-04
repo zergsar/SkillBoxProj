@@ -1,10 +1,6 @@
 package main.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.multipart.MultipartResolver;
-import org.springframework.web.multipart.commons.CommonsMultipartResolver;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
@@ -27,8 +23,10 @@ public class UploadsPathConfig extends WebMvcConfigurationSupport {
         .addResourceLocations("/WEB-INF/js/");
     registry.addResourceHandler("/upload/**")
         .addResourceLocations("/upload/");
-  }
+    registry.addResourceHandler("/favicon.ico")
+        .addResourceLocations("/WEB-INF/favicon.ico");
 
+  }
 
 
 }

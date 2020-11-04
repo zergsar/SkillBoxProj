@@ -57,8 +57,6 @@ public class AuthService {
   private int subdirDepth;
   @Value("${default.upload.dir}")
   private String defaultUploadDir;
-  @Value("${default.upload.temp.dir}")
-  private String defaultUploadTempDir;
   @Value("${profile.photo.height}")
   private int maxProfilePhotoHeight;
   @Value("${profile.photo.width}")
