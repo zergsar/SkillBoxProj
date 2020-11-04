@@ -13,7 +13,6 @@ import main.api.response.post.ResponsePost;
 import main.api.response.post.ResponsePostCalendar;
 import main.api.response.post.ResponsePostDetails;
 import main.api.response.tag.ResponseTags;
-import main.model.enums.SortMode;
 import main.model.enums.VoteType;
 import main.service.CommentService;
 import main.service.PostService;

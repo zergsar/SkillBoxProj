@@ -10,7 +10,7 @@ import main.api.request.RestorePassRequest;
 import main.api.response.ResponseResult;
 import main.api.response.auth.ResponseAuth;
 import main.api.response.captcha.CaptchaInfoResponse;
-import main.api.response.passsword.ResponsePassword;
+import main.api.response.password.ResponsePassword;
 import main.api.response.profile.ResponseUpdateProfile;
 import main.service.AuthService;
 import main.service.CaptchaService;

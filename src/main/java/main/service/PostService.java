@@ -33,7 +33,6 @@ import main.model.User;
 import main.model.cache.RedisCache;
 import main.model.enums.ModerationStatus;
 import main.model.enums.SettingsValue;
-import main.model.enums.SortMode;
 import main.model.enums.TypeDecisionToPost;
 import main.model.enums.UserInfoWithPhoto;
 import main.model.enums.VoteType;

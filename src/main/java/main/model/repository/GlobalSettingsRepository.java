@@ -1,7 +1,6 @@
 package main.model.repository;
 
 import main.model.GlobalSettings;
-import main.model.Post;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;

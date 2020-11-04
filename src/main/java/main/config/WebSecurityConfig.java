@@ -1,8 +1,5 @@
 package main.config;
 
-import jodd.net.HttpStatus;
-import jodd.net.HttpStatus.HttpStatus401;
-import main.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;

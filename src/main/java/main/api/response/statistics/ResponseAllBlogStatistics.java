@@ -1,7 +1,5 @@
 package main.api.response.statistics;
 
-import java.util.Calendar;
-
 public class ResponseAllBlogStatistics {
 
   private int postsCount;

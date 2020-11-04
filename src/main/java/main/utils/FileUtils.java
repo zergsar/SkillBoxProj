@@ -39,13 +39,13 @@ public class FileUtils {
     String dir =
         (defaultUploadDir.endsWith("/") ? defaultUploadDir : defaultUploadDir + "/") + subDirNames;
 
-    String pathToRes = getUploadFileToSubDir(dir, image).replace("\\", "/")
+    String pathToRes = getPathToUpload(dir, image).replace("\\", "/")
         .replace(defaultUploadDir, "");
     pathToRes = pathToRes.startsWith("/") ? "/upload" + pathToRes : "/upload/" + pathToRes;
     return pathToRes;
   }
 
-  private static String getUploadFileToSubDir(String subDirNames, MultipartFile image) {
+  private static String getPathToUpload(String subDirNames, MultipartFile image) {
     File subdir = new File(subDirNames);
     if (!subdir.exists() || !subdir.isDirectory()) {
       subdir.mkdirs();

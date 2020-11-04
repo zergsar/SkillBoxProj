@@ -1,4 +1,4 @@
-package main.api.response.passsword;
+package main.api.response.password;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serializable;

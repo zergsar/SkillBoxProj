@@ -1,9 +1,6 @@
 package main.api.request;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Iterator;
-import org.springframework.web.multipart.MultipartFile;
 
 public class EditProfileRequest implements Serializable {
 
