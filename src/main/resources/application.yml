@@ -52,9 +52,9 @@ profile.photo.width: 36
 #Mail service config
 mail.protocol: smtp
 mail.host: smtp.gmail.com
-mail.port: 465
+mail.port: 587
 mail.username: ${MAIL_USERNAME}
 mail.password: ${MAIL_PASSWORD}
 mail.smtp.auth: true
-mail.ssl.enable: true
+mail.starttls.enable: true
 mail.debug: false
