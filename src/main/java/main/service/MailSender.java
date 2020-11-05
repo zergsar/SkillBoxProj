@@ -13,7 +13,7 @@ public class MailSender {
   @Value("${mail.username}")
   private String username;
 
-  private JavaMailSender mailSender;
+  private final JavaMailSender mailSender;
 
   public MailSender(JavaMailSender mailSender) {
     this.mailSender = mailSender;
