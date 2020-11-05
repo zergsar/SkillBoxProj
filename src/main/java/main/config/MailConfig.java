@@ -28,7 +28,7 @@ public class MailConfig {
   @Value("${mail.smtp.auth}")
   private String auth;
 
-  @Value("${mail.starttls.enable}")
+  @Value("${mail.ssl.enable}")
   private String starttls;
 
   @Value("${mail.debug}")
@@ -46,7 +46,7 @@ public class MailConfig {
     Properties props = mailSender.getJavaMailProperties();
     props.put("mail.transport.protocol", protocol);
     props.put("mail.smtp.auth", auth);
-    props.put("mail.smtp.starttls.enable", starttls);
+    props.put("mail.smtp.ssl.enable", starttls);
     props.put("mail.debug", debug);
 
     return mailSender;
