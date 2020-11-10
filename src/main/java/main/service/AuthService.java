@@ -359,8 +359,13 @@ public class AuthService {
           bi = ImageUtils.scale(bi, maxProfilePhotoHeight, maxProfilePhotoWidth);
           ByteArrayOutputStream baos = new ByteArrayOutputStream();
           ImageIO.write(bi, "jpeg", baos);
-          MultipartFile photoAfterScale = new MultipartImage(baos.toByteArray(), photo.getName(),
-              photo.getOriginalFilename(), photo.getContentType(), photo.getSize());
+          MultipartFile photoAfterScale = new MultipartImage.Builder()
+              .fromBytesArray(baos.toByteArray())
+              .withName(photo.getName())
+              .withOriginalFilename(photo.getOriginalFilename())
+              .withContentType(photo.getContentType())
+              .withSize(photo.getSize())
+              .build();
           user.setPhoto(
               FileUtils
                   .uploadFile(defaultUploadDir, subdirNameLength, subdirDepth, photoAfterScale));

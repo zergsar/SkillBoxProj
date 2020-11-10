@@ -34,7 +34,6 @@ captcha.appearance.fontSize: 16
 captcha.appearance.textCoordX: 20
 captcha.appearance.textCoordY: 20
 
-
 #Subdirectories config
 subdir.name.length: 3
 subdir.depth: 3
